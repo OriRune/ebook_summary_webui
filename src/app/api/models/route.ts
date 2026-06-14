@@ -14,10 +14,13 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
-  const { backend, apiKey } = (await req.json()) as {
-    backend?: string;
-    apiKey?: string;
-  };
+  let backend: string | undefined;
+  let apiKey: string | undefined;
+  try {
+    ({ backend, apiKey } = (await req.json()) as { backend?: string; apiKey?: string });
+  } catch {
+    return NextResponse.json({ models: [], error: "Invalid JSON body." }, { status: 400 });
+  }
 
   if (backend === "ollama") {
     if (process.env.NEXT_PUBLIC_ALLOW_OLLAMA !== "true") {

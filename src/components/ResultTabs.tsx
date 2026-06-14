@@ -28,22 +28,46 @@ export default function ResultTabs({
       <div className="truncate text-lg font-semibold" title={section?.title}>
         {section ? section.title : <span className="text-muted">No section selected</span>}
       </div>
-      <div className="mt-2 flex flex-wrap gap-4 border-b border-border">
-        {TABS.map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`-mb-px border-b-2 px-1 pb-2 text-sm transition-colors ${
-              tab === t
-                ? "border-accent font-medium text-fg"
-                : "border-transparent text-muted hover:text-fg"
-            }`}
-          >
-            {t}
-          </button>
-        ))}
+      <div
+        role="tablist"
+        aria-label="Result views"
+        className="mt-2 flex flex-wrap gap-4 border-b border-border"
+        onKeyDown={(e) => {
+          if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+          e.preventDefault();
+          const i = TABS.indexOf(tab);
+          const next = e.key === "ArrowRight" ? (i + 1) % TABS.length : (i - 1 + TABS.length) % TABS.length;
+          setTab(TABS[next]);
+        }}
+      >
+        {TABS.map((t) => {
+          const active = tab === t;
+          return (
+            <button
+              key={t}
+              role="tab"
+              id={`tab-${t}`}
+              aria-selected={active}
+              aria-controls="result-tabpanel"
+              tabIndex={active ? 0 : -1}
+              onClick={() => setTab(t)}
+              className={`-mb-px border-b-2 px-1 pb-2 text-sm transition-colors ${
+                active
+                  ? "border-accent font-medium text-fg"
+                  : "border-transparent text-muted hover:text-fg"
+              }`}
+            >
+              {t}
+            </button>
+          );
+        })}
       </div>
-      <div className="max-h-[70vh] min-h-[12rem] overflow-auto pt-4">
+      <div
+        id="result-tabpanel"
+        role="tabpanel"
+        aria-labelledby={`tab-${tab}`}
+        className="max-h-[70vh] min-h-[12rem] overflow-auto pt-4"
+      >
         {renderTab(tab, section, result, isChecked, characterList, characterListError)}
       </div>
     </div>

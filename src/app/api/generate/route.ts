@@ -11,7 +11,7 @@
  *   { sections, toProcess, options, backend, model, apiKey,
  *     bookTitle?, initialContext?, initialNotes? }
  */
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import type {
   Backend,
   CharacterNote,
@@ -22,10 +22,14 @@ import { generateSectionContent } from "@/lib/llm/generate";
 import { consolidateCharacterList } from "@/lib/llm/consolidate";
 import { ChapterContinuityTracker } from "@/lib/llm/chapterContinuity";
 import { DEFAULT_MODEL } from "@/lib/llm/prompts";
+import { validateGenerateBody } from "@/lib/apiValidation";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 300;
+// Vercel caps function duration at 60s (Hobby) / up to 300s (Pro). Long books
+// won't always finish in one request — the client resumes unfinished sections on
+// the next Generate click (completed sections are streamed + persisted as they land).
+export const maxDuration = 60;
 
 interface GenerateBody {
   sections: Section[];
@@ -40,7 +44,16 @@ interface GenerateBody {
 }
 
 export async function POST(req: NextRequest) {
-  const body = (await req.json()) as GenerateBody;
+  let body: GenerateBody;
+  try {
+    body = (await req.json()) as GenerateBody;
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
+  }
+  const invalid = validateGenerateBody(body);
+  if (invalid) {
+    return NextResponse.json({ error: invalid }, { status: 400 });
+  }
   const {
     sections,
     toProcess,

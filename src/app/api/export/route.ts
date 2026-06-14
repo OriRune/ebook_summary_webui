@@ -15,6 +15,7 @@ import {
   exportContextNotesMarkdown,
 } from "@/lib/export/notes";
 import { exportBasename } from "@/lib/filename";
+import { validateExportBody } from "@/lib/apiValidation";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -45,6 +46,16 @@ function download(
 }
 
 export async function POST(req: NextRequest) {
+  let parsed: ExportBody;
+  try {
+    parsed = (await req.json()) as ExportBody;
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
+  }
+  const invalid = validateExportBody(parsed);
+  if (invalid) {
+    return NextResponse.json({ error: invalid }, { status: 400 });
+  }
   const {
     kind,
     results,
@@ -52,7 +63,7 @@ export async function POST(req: NextRequest) {
     bookTitle = "",
     author = "",
     fileStem = "ebook",
-  } = (await req.json()) as ExportBody;
+  } = parsed;
 
   const base = exportBasename(bookTitle, author, fileStem);
 

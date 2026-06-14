@@ -164,6 +164,13 @@ export default function SettingsPanel({ settings, update, allowOllama }: Props) 
           onChange={(e) => update("maxChars", Number(e.target.value) || 9000)}
         />
       </label>
+
+      {settings.backend !== "ollama" && (
+        <p className="w-full text-xs text-muted">
+          🔒 Your API key is stored only in this browser and sent with each request —
+          never saved on our server.
+        </p>
+      )}
     </div>
   );
 }

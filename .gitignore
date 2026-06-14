@@ -29,3 +29,6 @@ next-env.d.ts
 
 # testing
 /coverage
+
+# original Python source + handoff docs (kept locally, not published)
+/handoff

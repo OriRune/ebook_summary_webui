@@ -128,6 +128,17 @@ tests/                      # Vitest (parser, JSON extraction, exports, cost, �
 
 ---
 
+## Deploying
+
+The easiest path is **Vercel**: import the repo and deploy (no env vars needed unless you
+want Ollama, which can't reach a local instance from the cloud anyway). Two hosted limits to
+know about:
+
+- **Uploads up to ~4 MB** (Vercel's serverless request-body limit). Larger books: run locally.
+- **A per-request time limit** (60s Hobby / up to 300s Pro). Long books may not finish in one
+  pass — completed sections are saved as they stream, so just click **Generate** again to
+  resume the rest. Self-host on a long-lived Node server for no time limit.
+
 ## License
 
-No license specified yet — add one if you intend others to reuse the code.
+[MIT](./LICENSE) © 2026 OriRune.

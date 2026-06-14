@@ -297,6 +297,7 @@ export default function Home() {
       const reader = resp.body.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
+      let sawTerminal = false;
       const total = toProcess.length;
 
       while (true) {
@@ -324,13 +325,21 @@ export default function Home() {
             setCharacterList(evt.characters);
             setCharacterListError(evt.error);
           } else if (evt.type === "done") {
+            sawTerminal = true;
             setStatus(`Done. Generated ${total} section(s).`);
           } else if (evt.type === "stopped") {
+            sawTerminal = true;
             setStatus("Stopped.");
           } else if (evt.type === "error") {
+            sawTerminal = true;
             setStatus(`Generation error: ${evt.error}`);
           }
         }
+      }
+      if (!sawTerminal) {
+        // Stream ended without a terminal event — likely the host's function time
+        // limit. Completed sections are already saved; resume picks up the rest.
+        setStatus("Run stopped early (host time limit?) — click Generate to resume the rest.");
       }
     } catch (e) {
       if (e instanceof DOMException && e.name === "AbortError") {
@@ -450,6 +459,7 @@ export default function Home() {
             className="btn ml-auto px-2 py-1 text-sm"
             onClick={() => update("darkMode", !settings.darkMode)}
             aria-label="Toggle dark mode"
+            aria-pressed={settings.darkMode}
             title="Toggle dark mode"
           >
             {settings.darkMode ? "☀ Light" : "🌙 Dark"}
@@ -557,6 +567,21 @@ export default function Home() {
               <div className="text-xs text-muted">{status}</div>
             </section>
 
+            {sections.length === 0 ? (
+              <div className="card flex flex-col items-center justify-center gap-3 py-16 text-center">
+                <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-[var(--coral)] to-[var(--lavender)] shadow-soft" />
+                <h2 className="text-lg font-semibold">No book loaded yet</h2>
+                <p className="reading max-w-md text-muted">
+                  Click <strong>Open ebook…</strong> above to load an <code>.epub</code>,{" "}
+                  <code>.pdf</code>, <code>.txt</code>, or <code>.md</code> file. New here?
+                  Check the{" "}
+                  <button className="font-medium text-[var(--link)] underline" onClick={() => setView("guide")}>
+                    How to use
+                  </button>{" "}
+                  tab.
+                </p>
+              </div>
+            ) : (
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-[320px_1fr]">
               <SectionList
                 sections={sections}
@@ -580,6 +605,7 @@ export default function Home() {
                 characterListError={characterListError}
               />
             </div>
+            )}
           </>
         )}
       </main>

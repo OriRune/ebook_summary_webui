@@ -77,6 +77,7 @@ export default function SectionList({
                       type="checkbox"
                       checked={checked[i] ?? true}
                       onChange={() => onToggle(i)}
+                      aria-label={`Include "${sec.title}" in generation`}
                     />
                   </td>
                   <td

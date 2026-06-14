@@ -21,7 +21,10 @@ import {
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const MAX_BYTES = 50 * 1024 * 1024; // 50 MB
+// Vercel serverless functions cap the request body at ~4.5 MB, so the hosted
+// site can't accept larger uploads regardless. Keep a little headroom; users with
+// bigger books can run the app locally (see the "How to use" page).
+const MAX_BYTES = 4 * 1024 * 1024; // 4 MB
 
 export async function POST(req: NextRequest) {
   let tempPath: string | null = null;
@@ -33,7 +36,11 @@ export async function POST(req: NextRequest) {
     }
     if (file.size > MAX_BYTES) {
       return NextResponse.json(
-        { error: "File too large (50 MB maximum)." },
+        {
+          error:
+            "File too large — the hosted site accepts uploads up to 4 MB. " +
+            "For larger books, run the app locally (see the How to use page).",
+        },
         { status: 400 }
       );
     }

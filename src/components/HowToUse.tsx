@@ -200,6 +200,13 @@ export default function HowToUse() {
           </li>
         </ol>
 
+        <p className="reading text-muted">
+          You can also deploy your own copy to <strong>Vercel</strong> in a couple of clicks
+          (import the repo, deploy). Note the hosted limits: uploads up to ~4&nbsp;MB and a
+          per-request time cap, so very long books finish by clicking <strong>Generate</strong>
+          again to resume. Running locally has no such limits.
+        </p>
+
         <div className="space-y-2">
           <div className="label">Optional · enable local models (Ollama)</div>
           <p className="reading">
