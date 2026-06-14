@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { CharacterSummary, Section, SectionResult } from "@/types";
+import type { CharacterNote, CharacterSummary, Section, SectionResult } from "@/types";
 import { charCount } from "@/types";
 import { estimateRunCost, estimateUsd } from "@/lib/llm/cost";
 import {
@@ -58,6 +58,7 @@ export default function Home() {
 
   const lastFile = useRef<File | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const stopRequestedRef = useRef(false);
   const startTimeRef = useRef<number>(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const restoredRef = useRef(false);
@@ -212,8 +213,103 @@ export default function Home() {
   // -------------------------------------------------------------- generation
 
   function stopGeneration() {
+    stopRequestedRef.current = true;
     abortRef.current?.abort();
     setStatus("Stopping after the current section finishes…");
+  }
+
+  type Terminal = "done" | "stopped" | "incomplete" | "error" | "none";
+
+  /**
+   * Run one /api/generate request (one "pass"). The server self-limits by time
+   * and ends a long run with an "incomplete" event; the caller loops on that to
+   * continue automatically. `onResult` accumulates results so the next pass can
+   * compute its resume inputs without waiting on React state.
+   */
+  async function runPass(args: {
+    apiKey: string;
+    model: string;
+    toProcess: number[];
+    initialNotes: Array<[string, CharacterNote[]]>;
+    initialContext: string | null;
+    baseDone: number;
+    overallTotal: number;
+    onResult: (idx: number, result: SectionResult) => void;
+  }): Promise<{ terminal: Terminal; error?: string }> {
+    const { apiKey, model, toProcess, initialNotes, initialContext, baseDone, overallTotal } = args;
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    const resp = await fetch("/api/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      signal: controller.signal,
+      body: JSON.stringify({
+        sections,
+        toProcess,
+        options: {
+          includeSummary: settings.includeSummary,
+          includeFlashcards: settings.includeFlashcards,
+          includeDiscussion: settings.includeDiscussion,
+          includeCharacterList: settings.includeCharacterList,
+          includeContextDigest: settings.includeContextDigest,
+          contentType: settings.contentType,
+        },
+        backend: settings.backend,
+        model,
+        apiKey,
+        bookTitle,
+        initialContext,
+        initialNotes,
+      }),
+    });
+    if (!resp.body) throw new Error("No response stream.");
+
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let terminal: Terminal = "none";
+    let error: string | undefined;
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const blocks = buffer.split("\n\n");
+      buffer = blocks.pop() ?? "";
+      for (const block of blocks) {
+        const line = block.trim();
+        if (!line.startsWith("data:")) continue;
+        const evt = JSON.parse(line.slice(5).trim());
+        if (evt.type === "progress") {
+          // Translate per-batch progress to overall book progress.
+          const overallN = baseDone + evt.n;
+          setProgress({ n: overallN, total: overallTotal, title: evt.title });
+          setStatus(`Generating section ${overallN + 1} of ${overallTotal}: ${evt.title}`);
+          if (overallN > 0) {
+            const avg = (Date.now() - startTimeRef.current) / 1000 / overallN;
+            setEta(avg * (overallTotal - overallN));
+          }
+        } else if (evt.type === "result") {
+          args.onResult(evt.idx, evt.result);
+        } else if (evt.type === "character_list_started") {
+          setStatus("All sections done — building character list…");
+        } else if (evt.type === "character_list") {
+          setCharacterList(evt.characters);
+          setCharacterListError(evt.error);
+        } else if (evt.type === "done") {
+          terminal = "done";
+        } else if (evt.type === "stopped") {
+          terminal = "stopped";
+        } else if (evt.type === "incomplete") {
+          terminal = "incomplete";
+        } else if (evt.type === "error") {
+          terminal = "error";
+          error = evt.error;
+        }
+      }
+    }
+    return { terminal, error };
   }
 
   async function startGeneration() {
@@ -238,17 +334,18 @@ export default function Home() {
       setStatus("Check at least one section to generate content for.");
       return;
     }
-    const toProcess = toProcessIndices(checkedIndices, results);
-    if (toProcess.length === 0) {
+    const overallTotal = toProcessIndices(checkedIndices, results).length;
+    if (overallTotal === 0) {
       setStatus("All checked sections already have results. Clear a result to regenerate.");
       return;
     }
 
-    // Reconstruct accumulated character notes + last good context digest.
-    const initialNotes = reconstructInitialNotes(sections, results);
-    const initialContext = reconstructInitialContext(results);
+    // Local accumulator so each pass can compute its resume inputs immediately,
+    // without waiting for the async React `results` state to settle.
+    const acc: Record<number, SectionResult> = { ...results };
 
     setGenerating(true);
+    stopRequestedRef.current = false;
     setEta(null);
     setElapsed(0);
     startTimeRef.current = Date.now();
@@ -256,81 +353,68 @@ export default function Home() {
       setElapsed((Date.now() - startTimeRef.current) / 1000);
     }, 1000);
 
-    const controller = new AbortController();
-    abortRef.current = controller;
-
     try {
-      const resp = await fetch("/api/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        signal: controller.signal,
-        body: JSON.stringify({
-          sections,
-          toProcess,
-          options: {
-            includeSummary: settings.includeSummary,
-            includeFlashcards: settings.includeFlashcards,
-            includeDiscussion: settings.includeDiscussion,
-            includeCharacterList: settings.includeCharacterList,
-            includeContextDigest: settings.includeContextDigest,
-            contentType: settings.contentType,
-          },
-          backend: settings.backend,
-          model,
-          apiKey,
-          bookTitle,
-          initialContext,
-          initialNotes,
-        }),
-      });
-      if (!resp.body) throw new Error("No response stream.");
-
-      const reader = resp.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
-      let sawTerminal = false;
-      const total = toProcess.length;
-
+      let pass = 0;
       while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const blocks = buffer.split("\n\n");
-        buffer = blocks.pop() ?? "";
-        for (const block of blocks) {
-          const line = block.trim();
-          if (!line.startsWith("data:")) continue;
-          const evt = JSON.parse(line.slice(5).trim());
-          if (evt.type === "progress") {
-            setProgress({ n: evt.n, total: evt.total, title: evt.title });
-            setStatus(`Generating section ${evt.n + 1} of ${evt.total}: ${evt.title}`);
-            if (evt.n > 0) {
-              const avg = (Date.now() - startTimeRef.current) / 1000 / evt.n;
-              setEta(avg * (evt.total - evt.n));
-            }
-          } else if (evt.type === "result") {
-            setResults((r) => ({ ...r, [evt.idx]: evt.result }));
-          } else if (evt.type === "character_list_started") {
-            setStatus("All sections done — building character list…");
-          } else if (evt.type === "character_list") {
-            setCharacterList(evt.characters);
-            setCharacterListError(evt.error);
-          } else if (evt.type === "done") {
-            sawTerminal = true;
-            setStatus(`Done. Generated ${total} section(s).`);
-          } else if (evt.type === "stopped") {
-            sawTerminal = true;
-            setStatus("Stopped.");
-          } else if (evt.type === "error") {
-            sawTerminal = true;
-            setStatus(`Generation error: ${evt.error}`);
-          }
+        if (stopRequestedRef.current) {
+          setStatus("Stopped.");
+          break;
         }
-      }
-      if (!sawTerminal) {
-        // Stream ended without a terminal event — likely the host's function time
-        // limit. Completed sections are already saved; resume picks up the rest.
-        setStatus("Run stopped early (host time limit?) — click Generate to resume the rest.");
+        if (++pass > 100) {
+          setStatus("Stopped after 100 continuation passes — click Generate to keep going.");
+          break;
+        }
+
+        const toProcess = toProcessIndices(checkedIndices, acc);
+        if (toProcess.length === 0) {
+          setStatus(`Done. Generated ${overallTotal} section(s).`);
+          break;
+        }
+        const baseDone = overallTotal - toProcess.length;
+        const remainingBefore = toProcess.length;
+
+        const { terminal, error } = await runPass({
+          apiKey,
+          model,
+          toProcess,
+          initialNotes: reconstructInitialNotes(sections, acc),
+          initialContext: reconstructInitialContext(acc),
+          baseDone,
+          overallTotal,
+          onResult: (idx, result) => {
+            acc[idx] = result;
+            setResults((r) => ({ ...r, [idx]: result }));
+          },
+        });
+
+        if (terminal === "done") {
+          setStatus(`Done. Generated ${overallTotal} section(s).`);
+          break;
+        }
+        if (terminal === "stopped") {
+          setStatus("Stopped.");
+          break;
+        }
+        if (terminal === "error") {
+          setStatus(`Generation error: ${error}`);
+          break;
+        }
+        // "incomplete" (graceful time-limit) or "none" (abrupt kill): continue
+        // automatically as long as we keep making forward progress.
+        if (stopRequestedRef.current) {
+          setStatus("Stopped.");
+          break;
+        }
+        const remainingAfter = toProcessIndices(checkedIndices, acc).length;
+        if (remainingAfter >= remainingBefore) {
+          // No section completed this pass — avoid a hot loop.
+          setStatus(
+            "Run stopped early and couldn't make progress — check your model/key, then click Generate to retry."
+          );
+          break;
+        }
+        const completedSoFar = overallTotal - remainingAfter;
+        setStatus(`Continuing automatically… ${completedSoFar}/${overallTotal} sections done.`);
       }
     } catch (e) {
       if (e instanceof DOMException && e.name === "AbortError") {

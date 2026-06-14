@@ -88,9 +88,11 @@ const STEPS: Step[] = [
     body: (
       <>
         Click <strong>Generate for checked sections</strong>. Results stream in one
-        section at a time with a live progress bar. <strong>Stop</strong> halts after
-        the current section, and clicking Generate again <strong>resumes</strong> —
-        only unfinished or failed sections are re-processed.
+        section at a time with a live progress bar. Long books <strong>continue
+        automatically</strong> across the host&apos;s per-request time limit — just leave
+        the tab open until it&apos;s done; no repeated clicking. <strong>Stop</strong>{" "}
+        halts after the current section, and clicking Generate again{" "}
+        <strong>resumes</strong> — only unfinished or failed sections are re-processed.
       </>
     ),
   },
@@ -208,8 +210,9 @@ export default function HowToUse() {
         <p className="reading text-muted">
           You can also deploy your own copy to <strong>Vercel</strong> in a couple of clicks
           (import the repo, deploy). Note the hosted limits: uploads up to ~4&nbsp;MB and a
-          per-request time cap, so very long books finish by clicking <strong>Generate</strong>
-          again to resume. Running locally has no such limits.
+          per-request time cap — long books work around the cap by continuing automatically
+          across several requests, so they still finish in one sitting. Running locally has no
+          such limits.
         </p>
 
         <div className="space-y-2">

@@ -20,7 +20,8 @@ only in your browser and sent per request — never persisted on the server.
   questions, character notes, and an optional carry-forward story recap.
 - **Section tools:** check/uncheck, rename, merge, adjust *Max chars/section* + re-split.
 - **Streaming generation** with live progress; **Stop** anytime; re-running **resumes**
-  only the unfinished/failed sections.
+  only the unfinished/failed sections. Long books **continue automatically** across the
+  host's per-request time limit.
 - **Exports:** Anki CSV (Basic + Cloze), Markdown study guide, Word `.docx`, and raw
   character/context notes.
 - **Light/dark themes**, responsive desktop + mobile layout, and run state persisted
@@ -148,9 +149,10 @@ want Ollama, which can't reach a local instance from the cloud anyway). Two host
 know about:
 
 - **Uploads up to ~4 MB** (Vercel's serverless request-body limit). Larger books: run locally.
-- **A per-request time limit** (60s Hobby / up to 300s Pro). Long books may not finish in one
-  pass — completed sections are saved as they stream, so just click **Generate** again to
-  resume the rest. Self-host on a long-lived Node server for no time limit.
+- **A per-request time limit** (60s Hobby / up to 300s Pro). The generation run self-limits
+  just under the cap, saves completed sections as they stream, and the UI **continues
+  automatically** across as many requests as needed — long books finish in one sitting with no
+  manual clicking. Self-host on a long-lived Node server for no time limit.
 
 ## License
 

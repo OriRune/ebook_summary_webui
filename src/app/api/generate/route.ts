@@ -23,13 +23,16 @@ import { consolidateCharacterList } from "@/lib/llm/consolidate";
 import { ChapterContinuityTracker } from "@/lib/llm/chapterContinuity";
 import { DEFAULT_MODEL } from "@/lib/llm/prompts";
 import { validateGenerateBody } from "@/lib/apiValidation";
+import { shouldStopForTime } from "@/lib/generationBudget";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 // Vercel caps function duration at 60s (Hobby) / up to 300s (Pro). Long books
-// won't always finish in one request — the client resumes unfinished sections on
-// the next Generate click (completed sections are streamed + persisted as they land).
+// won't finish in one request, so the loop self-limits by time (see below) and
+// emits an "incomplete" event before the platform kills it; the client then
+// resumes the next batch automatically. Pro users can raise this to 300.
 export const maxDuration = 60;
+const HARD_LIMIT_MS = maxDuration * 1000;
 
 interface GenerateBody {
   sections: Section[];
@@ -82,12 +85,24 @@ export async function POST(req: NextRequest) {
       let priorContext: string | null = initialContext;
       const tracker = new ChapterContinuityTracker();
       let stopped = false;
+      let timedOut = false;
+
+      const runStart = Date.now();
+      let completed = 0;
 
       try {
         const total = toProcess.length;
         for (let n = 0; n < total; n++) {
           if (req.signal.aborted) {
             stopped = true;
+            break;
+          }
+          // Stop gracefully before the host's hard duration cap would sever the
+          // stream; the client resumes the remaining sections automatically.
+          const elapsedMs = Date.now() - runStart;
+          const avgSectionMs = completed > 0 ? elapsedMs / completed : 0;
+          if (shouldStopForTime({ elapsedMs, avgSectionMs, hardLimitMs: HARD_LIMIT_MS })) {
+            timedOut = true;
             break;
           }
           const idx = toProcess[n];
@@ -128,9 +143,15 @@ export async function POST(req: NextRequest) {
               [...result.discussionQuestions]
             );
           }
+          completed++;
         }
 
-        if (includeCharacterList && notesBySection.length > 0 && !stopped) {
+        // Only consolidate the character list once the whole run is finished —
+        // not on a batch that stopped early for time (the final batch, which has
+        // every section's notes via the client's reconstructed initialNotes,
+        // runs it). Otherwise we'd emit a premature/partial list.
+        const finishedRun = !stopped && !timedOut;
+        if (includeCharacterList && notesBySection.length > 0 && finishedRun) {
           send({ type: "character_list_started" });
           const { characters, error } = await consolidateCharacterList(
             apiKey,
@@ -140,7 +161,7 @@ export async function POST(req: NextRequest) {
             backend
           );
           send({ type: "character_list", characters, error });
-        } else if (includeCharacterList && !stopped) {
+        } else if (includeCharacterList && finishedRun) {
           send({
             type: "character_list",
             characters: [],
@@ -150,7 +171,7 @@ export async function POST(req: NextRequest) {
           });
         }
 
-        send({ type: stopped ? "stopped" : "done" });
+        send({ type: stopped ? "stopped" : timedOut ? "incomplete" : "done" });
       } catch (e) {
         send({ type: "error", error: e instanceof Error ? e.message : String(e) });
       } finally {
