@@ -2,24 +2,56 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Palette (supplied): ink #0d1821, wisteria #89aae6, lavender #7b5e7b,
+   coral #ff715b, tea #dceab2 — mapped coral-forward to semantic tokens so the
+   whole UI (and both themes) flows from these variables. */
 :root {
-  --bg: #f0f0f0;
+  --ink: #0d1821;
+  --wisteria: #89aae6;
+  --lavender: #7b5e7b;
+  --coral: #ff715b;
+  --tea: #dceab2;
+
+  --bg: #f3f5fb;
   --surface: #ffffff;
-  --fg: #000000;
-  --muted: #555555;
-  --border: #d0d0d0;
-  --accent: #0078d7;
+  --surface-2: #eef1f9;
+  --fg: #0d1821;
+  --muted: #6b6475;
+  --border: #dde2ee;
+  --accent: #ff715b;
   --accent-fg: #ffffff;
+  --accent-hover: #f25640;
+  --selected: #89aae6;
+  --selected-fg: #0d1821;
+  --heading: #7b5e7b;
+  --link: #3f6fc0;
+  --success: #5e8a2f;
+  --warn: #d6442c;
+  --ring: rgba(255, 113, 91, 0.45);
+  --shadow: 0 1px 3px rgba(13, 24, 33, 0.08), 0 4px 16px rgba(13, 24, 33, 0.06);
+
+  --font-serif: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia,
+    "Times New Roman", serif;
 }
 
 [data-theme="dark"] {
-  --bg: #2b2b2b;
-  --surface: #1e1e1e;
-  --fg: #e0e0e0;
-  --muted: #a0a0a0;
-  --border: #3c3c3c;
-  --accent: #3a6ea5;
+  --bg: #0d1821;
+  --surface: #142331;
+  --surface-2: #1b2c3b;
+  --fg: #e8edf4;
+  --muted: #9fb0c4;
+  --border: #26384a;
+  --accent: #ff715b;
   --accent-fg: #ffffff;
+  --accent-hover: #ff8a77;
+  --selected: #89aae6;
+  --selected-fg: #0d1821;
+  --heading: #c39ec3;
+  --link: #89aae6;
+  --success: #dceab2;
+  --warn: #ff8a77;
+  --ring: rgba(137, 170, 230, 0.45);
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 6px 20px rgba(0, 0, 0, 0.35);
 }
 
 html,
@@ -33,17 +65,42 @@ body {
     sans-serif;
 }
 
+input[type="checkbox"] {
+  accent-color: var(--accent);
+}
+
+::selection {
+  background: var(--selected);
+  color: var(--selected-fg);
+}
+
 @layer components {
+  .card {
+    @apply rounded-xl border border-border bg-surface p-4 shadow-soft;
+  }
   .btn {
-    @apply rounded border border-border bg-surface px-2 py-1 text-fg hover:bg-accent hover:text-accent-fg disabled:cursor-not-allowed disabled:opacity-50;
+    @apply rounded-lg border border-border bg-surface px-3 py-1.5 text-fg transition-colors hover:border-accent hover:text-accent focus:outline-none focus:ring-2 focus:ring-[var(--ring)] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-border disabled:hover:text-fg;
   }
   .btn-primary {
-    @apply rounded bg-accent px-3 py-1 font-medium text-accent-fg hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50;
+    @apply rounded-lg bg-accent px-4 py-1.5 font-medium text-accent-fg shadow-soft transition-colors hover:bg-[var(--accent-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--ring)] disabled:cursor-not-allowed disabled:opacity-50;
   }
   .btn-mini {
-    @apply rounded border border-border bg-surface px-1.5 text-fg hover:bg-accent hover:text-accent-fg disabled:cursor-not-allowed disabled:opacity-50;
+    @apply rounded-md border border-border bg-surface px-1.5 text-fg transition-colors hover:border-accent hover:text-accent focus:outline-none focus:ring-2 focus:ring-[var(--ring)] disabled:cursor-not-allowed disabled:opacity-50;
   }
   .field {
-    @apply rounded border border-border bg-surface px-2 py-1 text-fg;
+    @apply rounded-lg border border-border bg-surface px-2.5 py-1.5 text-fg transition-colors focus:border-accent focus:outline-none focus:ring-2 focus:ring-[var(--ring)];
+  }
+  /* Book-like reading typography for the text-display panes. */
+  .reading {
+    @apply font-serif text-[15px] leading-7;
+  }
+  .label {
+    @apply text-xs font-semibold uppercase tracking-wide text-heading;
+  }
+  .status-ok {
+    color: var(--success);
+  }
+  .status-warn {
+    color: var(--warn);
   }
 }

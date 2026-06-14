@@ -24,26 +24,34 @@ export default function ResultTabs({
   const [tab, setTab] = useState<Tab>("Summary");
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="text-lg font-semibold">{section ? section.title : ""}</div>
-      <div className="mt-2 flex flex-wrap gap-1 border-b border-border">
+    <div className="card flex h-full flex-col">
+      <div className="truncate text-lg font-semibold" title={section?.title}>
+        {section ? section.title : <span className="text-muted">No section selected</span>}
+      </div>
+      <div className="mt-2 flex flex-wrap gap-4 border-b border-border">
         {TABS.map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`rounded-t px-3 py-1 text-sm ${
-              tab === t ? "bg-surface font-medium" : "text-muted hover:text-fg"
+            className={`-mb-px border-b-2 px-1 pb-2 text-sm transition-colors ${
+              tab === t
+                ? "border-accent font-medium text-fg"
+                : "border-transparent text-muted hover:text-fg"
             }`}
           >
             {t}
           </button>
         ))}
       </div>
-      <div className="min-h-0 flex-1 overflow-auto whitespace-pre-wrap rounded-b bg-surface p-3 text-sm">
+      <div className="min-h-0 flex-1 overflow-auto pt-4">
         {renderTab(tab, section, result, isChecked, characterList, characterListError)}
       </div>
     </div>
   );
+}
+
+function Empty({ children }: { children: React.ReactNode }) {
+  return <em className="text-muted">{children}</em>;
 }
 
 function renderTab(
@@ -56,71 +64,95 @@ function renderTab(
 ) {
   if (tab === "Characters") {
     if (characterListError && characterList.length === 0) {
-      return <em className="text-muted">Couldn&apos;t build the character list: {characterListError}</em>;
+      return <Empty>Couldn&apos;t build the character list: {characterListError}</Empty>;
     }
     if (characterList.length === 0) {
-      return <em className="text-muted">(no character list was produced for this run)</em>;
+      return <Empty>(no character list was produced for this run)</Empty>;
     }
     return (
       <div className="space-y-3">
         {characterList.map((c, i) => (
-          <div key={i}>
-            <div className="font-semibold">{c.name}</div>
-            <div>{c.summary}</div>
+          <div key={i} className="rounded-lg border border-border bg-surface-2 p-3">
+            <div className="font-semibold text-heading">{c.name}</div>
+            <div className="reading mt-1">{c.summary}</div>
           </div>
         ))}
       </div>
     );
   }
 
-  if (!section) return <em className="text-muted">Select a section.</em>;
+  if (!section) return <Empty>Select a section.</Empty>;
 
-  if (tab === "Section text") return section.text;
+  if (tab === "Section text") {
+    return <div className="reading whitespace-pre-wrap">{section.text}</div>;
+  }
 
   if (!result) {
-    return (
-      <em className="text-muted">
-        {isChecked ? "(not generated yet)" : "(section unchecked — skipped)"}
-      </em>
-    );
+    return <Empty>{isChecked ? "(not generated yet)" : "(section unchecked — skipped)"}</Empty>;
   }
   if (result.error) {
-    if (tab === "Summary") return <span className="text-red-500">Generation failed:{"\n"}{result.error}</span>;
+    if (tab === "Summary") {
+      return (
+        <div className="rounded-lg border border-[var(--warn)] bg-surface-2 p-3 text-[var(--warn)]">
+          Generation failed:{"\n"}
+          {result.error}
+        </div>
+      );
+    }
     return "";
   }
 
   if (tab === "Summary") {
-    return result.summary || <em className="text-muted">(summary wasn&apos;t requested for this run)</em>;
+    return result.summary ? (
+      <div className="reading whitespace-pre-wrap">{result.summary}</div>
+    ) : (
+      <Empty>(summary wasn&apos;t requested for this run)</Empty>
+    );
   }
 
   if (tab === "Flashcards") {
     if (result.flashcards.length === 0) {
-      return <em className="text-muted">(flashcards weren&apos;t requested for this run)</em>;
+      return <Empty>(flashcards weren&apos;t requested for this run)</Empty>;
     }
     return (
-      <ol className="space-y-3">
-        {result.flashcards.map((c, i) => (
-          <li key={i}>
-            <div>
-              <span className="font-semibold">{c.cardType === "cloze" ? "Cloze:" : "Q:"}</span> {c.front}
-            </div>
-            {c.back && (
-              <div className="text-muted">
-                <span className="font-semibold">{c.cardType === "cloze" ? "Extra:" : "A:"}</span> {c.back}
+      <ol className="space-y-2.5">
+        {result.flashcards.map((c, i) => {
+          const cloze = c.cardType === "cloze";
+          return (
+            <li
+              key={i}
+              className={`rounded-lg border border-border bg-surface-2 p-3 ${
+                cloze ? "border-l-4 border-l-[var(--lavender)]" : ""
+              }`}
+            >
+              {cloze && (
+                <span className="mb-1 inline-block rounded-full bg-[var(--lavender)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+                  Cloze
+                </span>
+              )}
+              <div className="reading">
+                <span className="font-semibold text-heading">{cloze ? "" : "Q. "}</span>
+                {c.front}
               </div>
-            )}
-          </li>
-        ))}
+              {c.back && (
+                <div className="reading mt-1 text-muted">
+                  <span className="font-semibold">{cloze ? "Extra: " : "A. "}</span>
+                  {c.back}
+                </div>
+              )}
+            </li>
+          );
+        })}
       </ol>
     );
   }
 
   // Discussion
   if (result.discussionQuestions.length === 0) {
-    return <em className="text-muted">(discussion questions weren&apos;t requested for this run)</em>;
+    return <Empty>(discussion questions weren&apos;t requested for this run)</Empty>;
   }
   return (
-    <ol className="list-decimal space-y-2 pl-5">
+    <ol className="reading list-decimal space-y-3 pl-6 marker:font-semibold marker:text-heading">
       {result.discussionQuestions.map((q, i) => (
         <li key={i}>{q}</li>
       ))}

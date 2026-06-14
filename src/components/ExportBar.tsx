@@ -18,7 +18,9 @@ export default function ExportBar({
   onExport,
 }: Props) {
   return (
-    <div className="flex flex-wrap gap-2 text-sm">
+    <div className="space-y-2">
+      <div className="label">Export</div>
+      <div className="flex flex-wrap gap-2 text-sm">
       <button className="btn" disabled={!hasFlashcards} onClick={() => onExport("csv")}>
         Flashcards CSV (Anki Basic)
       </button>
@@ -37,6 +39,7 @@ export default function ExportBar({
       <button className="btn" disabled={!hasContextNotes} onClick={() => onExport("context")}>
         Context notes
       </button>
+      </div>
     </div>
   );
 }

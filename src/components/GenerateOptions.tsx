@@ -15,6 +15,7 @@ export default function GenerateOptions({ settings, update, costText }: Props) {
 
   return (
     <div className="space-y-2 text-sm">
+      <div className="label">What to generate</div>
       <div className="flex flex-wrap items-center gap-4">
         <span className="text-muted">Generate:</span>
         <label className="flex items-center gap-1">

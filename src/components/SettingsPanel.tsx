@@ -164,15 +164,6 @@ export default function SettingsPanel({ settings, update, allowOllama }: Props) 
           onChange={(e) => update("maxChars", Number(e.target.value) || 9000)}
         />
       </label>
-
-      <label className="ml-auto flex items-center gap-1">
-        <input
-          type="checkbox"
-          checked={settings.darkMode}
-          onChange={(e) => update("darkMode", e.target.checked)}
-        />
-        <span className="text-muted">Dark mode</span>
-      </label>
     </div>
   );
 }

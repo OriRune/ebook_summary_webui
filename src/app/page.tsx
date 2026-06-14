@@ -420,10 +420,13 @@ export default function Home() {
   if (!loaded) return null;
 
   return (
-    <main className="mx-auto flex h-screen max-w-[1200px] flex-col gap-3 p-4">
-      <header className="flex items-center gap-3">
-        <h1 className="text-xl font-bold">Ebook → Summaries &amp; Flashcards</h1>
-        <label className="btn cursor-pointer">
+    <main className="mx-auto flex h-screen max-w-[1240px] flex-col gap-4 overflow-hidden p-4 sm:p-6">
+      <header className="flex flex-wrap items-center gap-3 border-b border-border pb-3">
+        <span className="h-7 w-1.5 rounded-full bg-accent" aria-hidden />
+        <h1 className="text-xl font-bold tracking-tight">
+          Ebook <span className="text-muted">→</span> Summaries &amp; Flashcards
+        </h1>
+        <label className="btn-primary cursor-pointer">
           Open ebook…
           <input
             type="file"
@@ -438,55 +441,67 @@ export default function Home() {
           </button>
         )}
         <span className="text-sm text-muted">{lastFile.current?.name ?? "No file loaded"}</span>
+        <label className="ml-auto flex items-center gap-2 text-sm">
+          <input type="checkbox" checked={settings.darkMode} onChange={(e) => update("darkMode", e.target.checked)} />
+          <span className="text-muted">Dark mode</span>
+        </label>
       </header>
 
-      <div className="flex flex-wrap items-center gap-3 text-sm">
-        <label className="flex items-center gap-1">
-          <span className="text-muted">Book title:</span>
-          <input className="field w-64" value={bookTitle} onChange={(e) => setBookTitle(e.target.value)} />
-        </label>
-        <label className="flex items-center gap-1">
-          <span className="text-muted">Author:</span>
-          <input className="field w-48" value={author} onChange={(e) => setAuthor(e.target.value)} />
-        </label>
-      </div>
+      <section className="card space-y-3">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+          <label className="flex items-center gap-1.5">
+            <span className="text-muted">Book title</span>
+            <input className="field w-60" value={bookTitle} onChange={(e) => setBookTitle(e.target.value)} />
+          </label>
+          <label className="flex items-center gap-1.5">
+            <span className="text-muted">Author</span>
+            <input className="field w-44" value={author} onChange={(e) => setAuthor(e.target.value)} />
+          </label>
+        </div>
+        <div className="border-t border-border pt-3">
+          <SettingsPanel settings={settings} update={update} allowOllama={ALLOW_OLLAMA} />
+        </div>
+      </section>
 
-      <SettingsPanel settings={settings} update={update} allowOllama={ALLOW_OLLAMA} />
-      <GenerateOptions settings={settings} update={update} costText={costText} />
+      <section className="card space-y-3">
+        <GenerateOptions settings={settings} update={update} costText={costText} />
 
-      <div className="flex flex-wrap items-center gap-3">
-        <button className="btn-primary" disabled={generating || sections.length === 0} onClick={startGeneration}>
-          Generate for checked sections
-        </button>
-        <button className="btn" disabled={!generating} onClick={stopGeneration}>
-          Stop
-        </button>
-        {generating && progress && (
-          <div className="flex items-center gap-2 text-sm">
-            <div className="h-2 w-48 overflow-hidden rounded bg-surface">
-              <div
-                className="h-full bg-accent transition-all"
-                style={{ width: `${progress.total ? (progress.n / progress.total) * 100 : 0}%` }}
-              />
+        <div className="flex flex-wrap items-center gap-3 border-t border-border pt-3">
+          <button className="btn-primary" disabled={generating || sections.length === 0} onClick={startGeneration}>
+            Generate for checked sections
+          </button>
+          <button className="btn" disabled={!generating} onClick={stopGeneration}>
+            Stop
+          </button>
+          {generating && progress && (
+            <div className="flex flex-1 items-center gap-3 text-sm">
+              <div className="h-2 min-w-[8rem] flex-1 overflow-hidden rounded-full bg-surface-2 sm:max-w-xs">
+                <div
+                  className="h-full rounded-full bg-accent transition-all"
+                  style={{ width: `${progress.total ? (progress.n / progress.total) * 100 : 0}%` }}
+                />
+              </div>
+              <span className="whitespace-nowrap text-muted">
+                Elapsed {fmtDuration(elapsed)}
+                {eta !== null && ` · About ${fmtDuration(eta)} left`}
+              </span>
             </div>
-            <span className="text-muted">
-              Elapsed {fmtDuration(elapsed)}
-              {eta !== null && ` · About ${fmtDuration(eta)} left`}
-            </span>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
 
-      <ExportBar
-        hasResults={hasResults}
-        hasFlashcards={hasFlashcards}
-        hasCloze={hasCloze}
-        hasCharacterNotes={hasCharacterNotes}
-        hasContextNotes={hasContextNotes}
-        onExport={handleExport}
-      />
+        <div className="border-t border-border pt-3">
+          <ExportBar
+            hasResults={hasResults}
+            hasFlashcards={hasFlashcards}
+            hasCloze={hasCloze}
+            hasCharacterNotes={hasCharacterNotes}
+            hasContextNotes={hasContextNotes}
+            onExport={handleExport}
+          />
+        </div>
 
-      <div className="text-xs text-muted">{status}</div>
+        <div className="text-xs text-muted">{status}</div>
+      </section>
 
       <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 md:grid-cols-[360px_1fr]">
         <SectionList

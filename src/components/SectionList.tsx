@@ -38,19 +38,19 @@ export default function SectionList({
   onClearAll,
 }: Props) {
   return (
-    <div className="flex h-full flex-col">
-      <div className="mb-1 text-sm font-medium">
+    <div className="card flex h-full flex-col">
+      <div className="mb-1 text-sm font-semibold">
         Sections{" "}
-        <span className="text-muted">(check to include; double-click a title to rename)</span>
+        <span className="font-normal text-muted">(check to include; double-click a title to rename)</span>
       </div>
       <div className="mb-2 flex flex-wrap gap-2 text-xs">
         <button className="btn" onClick={() => onToggleAll(true)}>Check all</button>
         <button className="btn" onClick={() => onToggleAll(false)}>Uncheck all</button>
         <button className="btn" onClick={onClearAll}>Clear all results</button>
       </div>
-      <div className="min-h-0 flex-1 overflow-auto rounded border border-border">
+      <div className="min-h-0 flex-1 overflow-auto rounded-lg border border-border">
         <table className="w-full border-collapse text-sm">
-          <thead className="sticky top-0 bg-surface text-xs text-muted">
+          <thead className="sticky top-0 bg-surface-2 text-xs uppercase tracking-wide text-muted">
             <tr>
               <th className="w-10 p-1 text-center">Use?</th>
               <th className="p-1 text-left">Section</th>
@@ -65,8 +65,10 @@ export default function SectionList({
               return (
                 <tr
                   key={i}
-                  className={`cursor-pointer border-t border-border ${
-                    selected ? "bg-accent text-accent-fg" : "hover:bg-surface"
+                  className={`cursor-pointer border-t border-border transition-colors ${
+                    selected
+                      ? "bg-[var(--selected)] text-[var(--selected-fg)]"
+                      : "hover:bg-surface-2"
                   }`}
                   onClick={() => onSelect(i)}
                 >
@@ -88,7 +90,13 @@ export default function SectionList({
                     {sec.title}
                   </td>
                   <td className="p-1 text-right tabular-nums">{wordCount(sec)}</td>
-                  <td className="p-1 text-center">{statusMark(results[i])}</td>
+                  <td className="p-1 text-center">
+                    {results[i] && (
+                      <span className={selected ? "" : results[i].error ? "status-warn" : "status-ok"}>
+                        {statusMark(results[i])}
+                      </span>
+                    )}
+                  </td>
                   <td className="whitespace-nowrap p-1 text-xs">
                     {selected && (
                       <span onClick={(e) => e.stopPropagation()} className="flex gap-1">
