@@ -1,10 +1,13 @@
 /**
  * Backend model-list discovery, ported from llm_client.py
- * get_ollama_models / get_groq_models. Returns { models, error }; models is
- * empty and error is set on failure.
+ * get_ollama_models / get_groq_models and generalized. Returns
+ * { models, error }; models is empty and error is set on failure.
+ *
+ * Every OpenAI-compatible provider exposes GET /models with the same shape, so
+ * one function serves OpenAI, Gemini, OpenRouter, and Groq.
  */
 import { Ollama } from "ollama";
-import { GROQ_BASE_URL, ollamaBaseUrl } from "./backends";
+import { ollamaBaseUrl } from "./backends";
 
 export interface ModelListResult {
   models: string[];
@@ -22,15 +25,23 @@ export async function getOllamaModels(): Promise<ModelListResult> {
   }
 }
 
-// Groq hosts non-chat models too; exclude known non-chat id patterns.
-const GROQ_EXCLUDE = ["whisper", "distil-whisper", "tts", "playai", "vision"];
+export interface OpenAICompatibleModelOptions {
+  /** Non-chat model id substrings to exclude. */
+  exclude?: string[];
+  /** Strip this prefix from returned ids (Gemini: "models/"). */
+  stripPrefix?: string;
+}
 
-export async function getGroqModels(apiKey: string): Promise<ModelListResult> {
+export async function getOpenAICompatibleModels(
+  baseUrl: string,
+  apiKey: string,
+  { exclude = [], stripPrefix }: OpenAICompatibleModelOptions = {}
+): Promise<ModelListResult> {
   if (!apiKey) {
-    return { models: [], error: "No Groq API key provided." };
+    return { models: [], error: "No API key provided." };
   }
   try {
-    const resp = await fetch(`${GROQ_BASE_URL}/models`, {
+    const resp = await fetch(`${baseUrl}/models`, {
       headers: {
         Authorization: `Bearer ${apiKey}`,
         "User-Agent": "ebook-flashcards/1.0",
@@ -48,8 +59,10 @@ export async function getGroqModels(apiKey: string): Promise<ModelListResult> {
     }
     const data = await resp.json();
     const names = (data.data ?? [])
-      .map((m: { id: string }) => m.id)
-      .filter((id: string) => !GROQ_EXCLUDE.some((x) => id.toLowerCase().includes(x)))
+      .map((m: { id: string }) =>
+        stripPrefix && m.id.startsWith(stripPrefix) ? m.id.slice(stripPrefix.length) : m.id
+      )
+      .filter((id: string) => !exclude.some((x) => id.toLowerCase().includes(x)))
       .sort();
     return { models: names, error: null };
   } catch (e) {

@@ -5,12 +5,13 @@
  * type guards — kept deliberately small.
  */
 import type { Backend, GenerateOptions, Section } from "@/types";
+import { ALL_BACKENDS } from "@/lib/llm/providers";
 
 // Defensive caps (a single generate request carries the sections to process).
 const MAX_SECTIONS = 5000;
 const MAX_SECTION_CHARS = 2_000_000; // ~2 MB of text per section is already extreme
 
-const BACKENDS: Backend[] = ["anthropic", "ollama", "groq"];
+const BACKENDS: Backend[] = ALL_BACKENDS;
 const CONTENT_TYPES = ["auto", "fiction", "nonfiction"];
 const EXPORT_KINDS = ["csv", "cloze", "md", "docx", "char", "context"];
 

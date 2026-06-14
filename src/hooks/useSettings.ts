@@ -12,9 +12,15 @@ export interface Settings {
   backend: Backend;
   anthropicKey: string;
   anthropicModel: string;
+  openaiKey: string;
+  openaiModel: string;
+  geminiKey: string;
+  geminiModel: string;
+  openrouterKey: string;
+  openrouterModel: string;
   groqKey: string;
-  ollamaModel: string;
   groqModel: string;
+  ollamaModel: string;
   maxChars: number;
   contentType: ContentType;
   includeSummary: boolean;
@@ -29,9 +35,15 @@ const DEFAULTS: Settings = {
   backend: "anthropic",
   anthropicKey: "",
   anthropicModel: "claude-sonnet-4-6",
+  openaiKey: "",
+  openaiModel: "",
+  geminiKey: "",
+  geminiModel: "",
+  openrouterKey: "",
+  openrouterModel: "",
   groqKey: "",
-  ollamaModel: "",
   groqModel: "",
+  ollamaModel: "",
   maxChars: 9000,
   contentType: "auto",
   includeSummary: true,
@@ -87,4 +99,42 @@ export function useSettings() {
   }, []);
 
   return { settings, update, loaded };
+}
+
+// --- per-backend field mapping (keeps the lookup in one place) ---------------
+
+/** Settings field holding the API key for each backend (Ollama has none). */
+const KEY_FIELD: Partial<Record<Backend, keyof Settings>> = {
+  anthropic: "anthropicKey",
+  openai: "openaiKey",
+  gemini: "geminiKey",
+  openrouter: "openrouterKey",
+  groq: "groqKey",
+};
+
+/** Settings field holding the selected model for each backend. */
+const MODEL_FIELD: Record<Backend, keyof Settings> = {
+  anthropic: "anthropicModel",
+  openai: "openaiModel",
+  gemini: "geminiModel",
+  openrouter: "openrouterModel",
+  groq: "groqModel",
+  ollama: "ollamaModel",
+};
+
+export function keyForBackend(settings: Settings, backend: Backend): string {
+  const field = KEY_FIELD[backend];
+  return field ? (settings[field] as string) : "";
+}
+
+export function modelForBackend(settings: Settings, backend: Backend): string {
+  return settings[MODEL_FIELD[backend]] as string;
+}
+
+export function modelFieldFor(backend: Backend): keyof Settings {
+  return MODEL_FIELD[backend];
+}
+
+export function keyFieldFor(backend: Backend): keyof Settings | null {
+  return KEY_FIELD[backend] ?? null;
 }

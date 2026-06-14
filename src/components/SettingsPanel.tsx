@@ -2,7 +2,14 @@
 
 import { useState } from "react";
 import type { Backend } from "@/types";
-import type { Settings } from "@/hooks/useSettings";
+import {
+  type Settings,
+  keyForBackend,
+  modelForBackend,
+  keyFieldFor,
+  modelFieldFor,
+} from "@/hooks/useSettings";
+import { PROVIDERS, ALL_BACKENDS } from "@/lib/llm/providers";
 
 interface Props {
   settings: Settings;
@@ -20,45 +27,47 @@ async function fetchModels(backend: Backend, apiKey: string) {
 }
 
 export default function SettingsPanel({ settings, update, allowOllama }: Props) {
-  const [ollamaModels, setOllamaModels] = useState<string[]>([]);
-  const [groqModels, setGroqModels] = useState<string[]>([]);
-  const [ollamaStatus, setOllamaStatus] = useState("");
-  const [groqStatus, setGroqStatus] = useState("");
+  // Each backend keeps its own fetched model list + refresh status.
+  const [modelsByBackend, setModelsByBackend] = useState<Partial<Record<Backend, string[]>>>({});
+  const [statusByBackend, setStatusByBackend] = useState<Partial<Record<Backend, string>>>({});
 
-  async function refreshOllama() {
-    setOllamaStatus("Checking…");
-    const { models, error } = await fetchModels("ollama", "");
-    if (error || models.length === 0) {
-      setOllamaStatus(`⚠ ${error || "No models"}`);
-      setOllamaModels([]);
-    } else {
-      setOllamaModels(models);
-      if (!settings.ollamaModel || !models.includes(settings.ollamaModel)) {
-        update("ollamaModel", models[0]);
-      }
-      setOllamaStatus(`${models.length} model(s) found`);
-    }
-  }
+  const backend = settings.backend;
+  const provider = PROVIDERS[backend];
 
-  async function refreshGroq() {
-    if (!settings.groqKey) {
-      setGroqStatus("⚠ Enter API key first");
+  const setStatus = (b: Backend, s: string) =>
+    setStatusByBackend((prev) => ({ ...prev, [b]: s }));
+  const setModels = (b: Backend, m: string[]) =>
+    setModelsByBackend((prev) => ({ ...prev, [b]: m }));
+
+  async function refresh(b: Backend) {
+    const keyField = keyFieldFor(b);
+    const apiKey = keyForBackend(settings, b);
+    if (keyField && !apiKey) {
+      setStatus(b, "⚠ Enter API key first");
       return;
     }
-    setGroqStatus("Checking…");
-    const { models, error } = await fetchModels("groq", settings.groqKey);
+    setStatus(b, "Checking…");
+    const { models, error } = await fetchModels(b, apiKey);
     if (error || models.length === 0) {
-      setGroqStatus(`⚠ ${(error || "No models").slice(0, 80)}`);
-      setGroqModels([]);
-    } else {
-      setGroqModels(models);
-      if (!settings.groqModel || !models.includes(settings.groqModel)) {
-        const preferred = models.find((m) => m.toLowerCase().includes("llama") && m.includes("70b"));
-        update("groqModel", preferred || models[0]);
-      }
-      setGroqStatus(`${models.length} model(s) found`);
+      setStatus(b, `⚠ ${(error || "No models").slice(0, 80)}`);
+      setModels(b, []);
+      return;
     }
+    setModels(b, models);
+    const current = modelForBackend(settings, b);
+    if (!current || !models.includes(current)) {
+      const hint = PROVIDERS[b].modelPreferHint;
+      const preferred = hint ? models.find((m) => m.toLowerCase().includes(hint)) : undefined;
+      update(modelFieldFor(b), preferred || models[0]);
+    }
+    setStatus(b, `${models.length} model(s) found`);
   }
+
+  const backendOptions = ALL_BACKENDS.filter((b) => b !== "ollama" || allowOllama);
+  const fetchedModels = modelsByBackend[backend] ?? [];
+  const status = statusByBackend[backend] ?? "";
+  const currentModel = modelForBackend(settings, backend);
+  const keyField = keyFieldFor(backend);
 
   return (
     <div className="flex flex-wrap items-center gap-3 text-sm">
@@ -66,89 +75,61 @@ export default function SettingsPanel({ settings, update, allowOllama }: Props) 
         <span className="text-muted">Backend:</span>
         <select
           className="field"
-          value={settings.backend}
+          value={backend}
           onChange={(e) => update("backend", e.target.value as Backend)}
         >
-          <option value="anthropic">Anthropic API</option>
-          <option value="groq">Groq</option>
-          {allowOllama && <option value="ollama">Ollama (local)</option>}
+          {backendOptions.map((b) => (
+            <option key={b} value={b}>
+              {PROVIDERS[b].label}
+              {b === "ollama" ? " (local)" : ""}
+            </option>
+          ))}
         </select>
       </label>
 
-      {settings.backend === "anthropic" && (
-        <>
-          <label className="flex w-full items-center gap-1 sm:w-auto">
-            <span className="text-muted">API key:</span>
-            <input
-              type="password"
-              className="field w-full sm:w-64"
-              placeholder="sk-ant-…"
-              value={settings.anthropicKey}
-              onChange={(e) => update("anthropicKey", e.target.value)}
-            />
-          </label>
-          <label className="flex w-full items-center gap-1 sm:w-auto">
-            <span className="text-muted">Model:</span>
-            <input
-              className="field w-full sm:w-44"
-              value={settings.anthropicModel}
-              onChange={(e) => update("anthropicModel", e.target.value)}
-            />
-          </label>
-        </>
+      {/* API key — every backend except Ollama. */}
+      {keyField && (
+        <label className="flex w-full items-center gap-1 sm:w-auto">
+          <span className="text-muted">API key:</span>
+          <input
+            type="password"
+            className="field w-full sm:w-64"
+            placeholder={provider.keyPlaceholder}
+            value={settings[keyField] as string}
+            onChange={(e) => update(keyField, e.target.value)}
+          />
+        </label>
       )}
 
-      {settings.backend === "groq" && (
-        <>
-          <label className="flex w-full items-center gap-1 sm:w-auto">
-            <span className="text-muted">API key:</span>
-            <input
-              type="password"
-              className="field w-full sm:w-52"
-              placeholder="gsk_…"
-              value={settings.groqKey}
-              onChange={(e) => update("groqKey", e.target.value)}
-            />
-          </label>
-          <label className="flex w-full items-center gap-1 sm:w-auto">
-            <span className="text-muted">Model:</span>
-            <select
-              className="field w-full sm:w-52"
-              value={settings.groqModel}
-              onChange={(e) => update("groqModel", e.target.value)}
-            >
-              {settings.groqModel && !groqModels.includes(settings.groqModel) && (
-                <option value={settings.groqModel}>{settings.groqModel}</option>
-              )}
-              {groqModels.map((m) => (
-                <option key={m} value={m}>{m}</option>
-              ))}
-            </select>
-          </label>
-          <button className="btn" onClick={refreshGroq}>↺ Refresh</button>
-          <span className="text-muted">{groqStatus}</span>
-        </>
-      )}
-
-      {settings.backend === "ollama" && allowOllama && (
+      {/* Model — free text for Anthropic, refreshable dropdown for the rest. */}
+      {provider.kind === "anthropic" ? (
+        <label className="flex w-full items-center gap-1 sm:w-auto">
+          <span className="text-muted">Model:</span>
+          <input
+            className="field w-full sm:w-44"
+            value={currentModel}
+            onChange={(e) => update(modelFieldFor(backend), e.target.value)}
+          />
+        </label>
+      ) : (
         <>
           <label className="flex w-full items-center gap-1 sm:w-auto">
             <span className="text-muted">Model:</span>
             <select
               className="field w-full sm:w-52"
-              value={settings.ollamaModel}
-              onChange={(e) => update("ollamaModel", e.target.value)}
+              value={currentModel}
+              onChange={(e) => update(modelFieldFor(backend), e.target.value)}
             >
-              {settings.ollamaModel && !ollamaModels.includes(settings.ollamaModel) && (
-                <option value={settings.ollamaModel}>{settings.ollamaModel}</option>
+              {currentModel && !fetchedModels.includes(currentModel) && (
+                <option value={currentModel}>{currentModel}</option>
               )}
-              {ollamaModels.map((m) => (
+              {fetchedModels.map((m) => (
                 <option key={m} value={m}>{m}</option>
               ))}
             </select>
           </label>
-          <button className="btn" onClick={refreshOllama}>↺ Refresh</button>
-          <span className="text-muted">{ollamaStatus}</span>
+          <button className="btn" onClick={() => refresh(backend)}>↺ Refresh</button>
+          <span className="text-muted">{status}</span>
         </>
       )}
 
@@ -165,10 +146,23 @@ export default function SettingsPanel({ settings, update, allowOllama }: Props) 
         />
       </label>
 
-      {settings.backend !== "ollama" && (
+      {keyField && (
         <p className="w-full text-xs text-muted">
-          🔒 Your API key is stored only in this browser and sent with each request —
+          🔒 Your {provider.label} key is stored only in this browser and sent with each request —
           never saved on our server.
+          {provider.consoleUrl && (
+            <>
+              {" "}
+              <a
+                className="underline hover:text-[var(--accent)]"
+                href={provider.consoleUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Get a key ↗
+              </a>
+            </>
+          )}
         </p>
       )}
     </div>

@@ -82,7 +82,13 @@ export function totalTokens(estimate: CostEstimate): number {
 /** content_type values mirror the desktop selector. */
 export type ContentType = "auto" | "fiction" | "nonfiction";
 
-export type Backend = "anthropic" | "ollama" | "groq";
+export type Backend =
+  | "anthropic"
+  | "openai"
+  | "gemini"
+  | "openrouter"
+  | "groq"
+  | "ollama";
 
 /** What the user asked to generate for a run. */
 export interface GenerateOptions {
@@ -100,13 +106,16 @@ export interface GenerateOptions {
 export interface BackendConfig {
   backend: Backend;
   model: string;
-  /** Anthropic or Groq key; empty/ignored for Ollama. */
+  /** Provider API key; empty/ignored for Ollama. */
   apiKey: string;
 }
 
 /** Human-readable backend labels, matching the desktop _BACKEND_LABELS. */
 export const BACKEND_LABELS: Record<Backend, string> = {
   anthropic: "Anthropic API",
-  ollama: "Ollama",
+  openai: "OpenAI",
+  gemini: "Google Gemini",
+  openrouter: "OpenRouter",
   groq: "Groq",
+  ollama: "Ollama",
 };

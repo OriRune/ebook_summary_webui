@@ -64,7 +64,7 @@ describe("Groq rate-limit handling (§10)", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     await expect(callGroq()).rejects.toThrow(/quota exceeded/i);
-    await expect(callGroq()).rejects.toThrow(/console\.groq\.com/);
+    await expect(callGroq()).rejects.toThrow(/Groq rate limit/);
     expect(fetchMock).toHaveBeenCalledTimes(2); // one fetch per call, no retry
   });
 

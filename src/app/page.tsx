@@ -17,7 +17,8 @@ import {
   reconstructInitialContext,
 } from "@/lib/resume";
 import { saveRun, loadRun } from "@/lib/persistence";
-import { useSettings, ALLOW_OLLAMA } from "@/hooks/useSettings";
+import { useSettings, ALLOW_OLLAMA, keyForBackend, modelForBackend } from "@/hooks/useSettings";
+import { PROVIDERS } from "@/lib/llm/providers";
 import SettingsPanel from "@/components/SettingsPanel";
 import GenerateOptions from "@/components/GenerateOptions";
 import SectionList from "@/components/SectionList";
@@ -221,18 +222,8 @@ export default function Home() {
       setStatus("Check at least one of Summary, Flashcards, or Discussion questions.");
       return;
     }
-    const apiKey =
-      settings.backend === "anthropic"
-        ? settings.anthropicKey
-        : settings.backend === "groq"
-          ? settings.groqKey
-          : "";
-    const model =
-      settings.backend === "anthropic"
-        ? settings.anthropicModel
-        : settings.backend === "groq"
-          ? settings.groqModel
-          : settings.ollamaModel;
+    const apiKey = keyForBackend(settings, settings.backend);
+    const model = modelForBackend(settings, settings.backend);
     if (settings.backend !== "ollama" && !apiKey) {
       setStatus("Enter your API key first.");
       return;
@@ -396,11 +387,13 @@ export default function Home() {
   const costText = (() => {
     if (sections.length === 0) return "";
     const nChecked = checked.filter(Boolean).length;
-    if (settings.backend === "ollama") {
+    const pricing = PROVIDERS[settings.backend].pricing;
+    if (pricing === "free") {
       return `Cost: free (local model — no API charges). ${nChecked} section(s) checked.`;
     }
-    if (settings.backend === "groq") {
-      return `Cost: low (Groq pricing — see groq.com/pricing). ${nChecked} section(s) checked.`;
+    if (pricing === "varies") {
+      const label = PROVIDERS[settings.backend].label;
+      return `Cost: varies by model — see ${label} pricing. ${nChecked} section(s) checked.`;
     }
     const charCounts = sections.filter((_, i) => checked[i]).map((s) => charCount(s));
     const est = estimateRunCost(charCounts, {
@@ -414,9 +407,11 @@ export default function Home() {
     if (est.inputTokens + est.outputTokens === 0) {
       return "Estimated cost: — (check at least one section and one of Summary / Flashcards / Discussion).";
     }
+    const usd = estimateUsd(est, settings.backend, modelForBackend(settings, settings.backend));
+    const dollars = usd === null ? "" : `≈ $${usd.toFixed(2)} `;
     return (
       `Estimated for this run: ~${est.inputTokens.toLocaleString()} input + ` +
-      `~${est.outputTokens.toLocaleString()} output tokens ≈ $${estimateUsd(est).toFixed(2)} ` +
+      `~${est.outputTokens.toLocaleString()} output tokens ${dollars}` +
       `— a rough approximation; actual usage varies.`
     );
   })();

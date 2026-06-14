@@ -1,13 +1,16 @@
 /**
  * LLM backend dispatch, ported from llm_client.py (_call_ollama / _call_groq /
- * the inline Anthropic call). Each returns the raw assistant text; the caller
- * parses JSON out of it. Runs server-side only (API routes).
+ * the inline Anthropic call) and generalized. Each returns the raw assistant
+ * text; the caller parses JSON out of it. Runs server-side only (API routes).
+ *
+ * Most providers (OpenAI, Gemini, OpenRouter, Groq) speak the OpenAI Chat
+ * Completions format, so they share one handler parameterized by base URL +
+ * key. Anthropic uses its native SDK; Ollama talks to a local daemon.
  */
 import Anthropic from "@anthropic-ai/sdk";
 import { Ollama } from "ollama";
 import type { Backend } from "@/types";
-
-export const GROQ_BASE_URL = "https://api.groq.com/openai/v1";
+import { PROVIDERS } from "./providers";
 
 export function ollamaBaseUrl(): string {
   return process.env.OLLAMA_BASE_URL || "http://localhost:11434";
@@ -60,12 +63,27 @@ async function callOllama(
   return response.message.content;
 }
 
-async function callGroq(
+interface OpenAICompatibleOptions {
+  providerLabel: string;
+  /** Body field for the output cap; defaults to "max_tokens". */
+  maxTokensField?: string;
+  /** Extra headers (e.g. OpenRouter ranking headers). */
+  extraHeaders?: Record<string, string>;
+}
+
+/**
+ * Generic OpenAI Chat Completions client (OpenAI, Gemini, OpenRouter, Groq).
+ * Retries on 429 using Retry-After, and surfaces 413 (context too large) with
+ * an actionable message. `providerLabel` makes the errors provider-specific.
+ */
+async function callOpenAICompatible(
+  baseUrl: string,
   apiKey: string,
   model: string,
   systemPrompt: string,
   userMessage: string,
-  maxTokens: number
+  maxTokens: number,
+  { providerLabel, maxTokensField = "max_tokens", extraHeaders = {} }: OpenAICompatibleOptions
 ): Promise<string> {
   const payload = JSON.stringify({
     model,
@@ -73,38 +91,39 @@ async function callGroq(
       { role: "system", content: systemPrompt },
       { role: "user", content: userMessage },
     ],
-    max_tokens: maxTokens,
+    [maxTokensField]: maxTokens,
   });
 
   const maxRetries = 8;
   for (let attempt = 0; attempt < maxRetries; attempt++) {
-    const resp = await fetch(`${GROQ_BASE_URL}/chat/completions`, {
+    const resp = await fetch(`${baseUrl}/chat/completions`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${apiKey}`,
         "User-Agent": USER_AGENT,
+        ...extraHeaders,
       },
       body: payload,
     });
 
     if (resp.ok) {
       const data = await resp.json();
-      return data.choices[0].message.content as string;
+      return (data.choices?.[0]?.message?.content ?? "") as string;
     }
 
     if (resp.status === 429 && attempt < maxRetries - 1) {
-      // Groq returns a Retry-After header (seconds until the rate-limit window
-      // resets). Short waits → sleep and retry. Long waits (>120s) mean a
-      // harder quota cap, so surface a clear error rather than hanging.
+      // Many providers return a Retry-After header (seconds until the
+      // rate-limit window resets). Short waits → sleep and retry. Long waits
+      // (>120s) mean a harder quota cap, so surface a clear error.
       const retryAfter = resp.headers.get("retry-after");
       const wait = retryAfter ? parseFloat(retryAfter) : Math.min(2 ** attempt + 1, 60);
       if (wait > 120) {
         throw new Error(
-          `Groq rate limit: quota exceeded — server asked us to wait ` +
-            `${wait.toFixed(0)}s (${(wait / 60).toFixed(1)} min). You've likely hit the free-tier ` +
-            `daily token or request cap. Wait for the quota to reset (check ` +
-            `console.groq.com for your usage), or switch to a paid plan.`
+          `${providerLabel} rate limit: quota exceeded — server asked us to wait ` +
+            `${wait.toFixed(0)}s (${(wait / 60).toFixed(1)} min). You've likely hit a ` +
+            `token or request cap. Wait for the quota to reset (check your provider ` +
+            `dashboard), or switch to a higher plan.`
         );
       }
       await sleep(wait * 1000);
@@ -113,10 +132,9 @@ async function callGroq(
 
     if (resp.status === 413) {
       throw new Error(
-        "Section too large for this Groq model (HTTP 413). " +
+        `Section too large for this ${providerLabel} model (HTTP 413). ` +
           "Try reducing 'Max chars/section' in the settings (e.g. to 4000–6000), " +
-          "or switch to a model with a larger context window such as " +
-          "llama-3.1-8b-instant or llama-3.3-70b-versatile."
+          "or switch to a model with a larger context window."
       );
     }
 
@@ -128,11 +146,18 @@ async function callGroq(
     } catch {
       /* ignore body parse failure */
     }
-    throw new Error(`Groq request failed: ${message}`);
+    throw new Error(`${providerLabel} request failed: ${message}`);
   }
 
   // Exhausted retries on repeated 429s.
-  throw new Error("Groq rate limit: retries exhausted.");
+  throw new Error(`${providerLabel} rate limit: retries exhausted.`);
+}
+
+/** OpenRouter recommends these headers for app ranking; both are optional. */
+function openRouterHeaders(): Record<string, string> {
+  const site = process.env.NEXT_PUBLIC_SITE_URL;
+  if (!site) return {};
+  return { "HTTP-Referer": site, "X-Title": "Ebook Study-Aid Generator" };
 }
 
 export interface CallModelOptions {
@@ -153,16 +178,33 @@ export async function callModel({
   userMessage,
   maxTokens = 4096,
 }: CallModelOptions): Promise<string> {
-  if (backend === "ollama") {
+  const provider = PROVIDERS[backend];
+  if (!provider) throw new Error(`Unknown backend: ${backend}`);
+
+  if (provider.kind === "ollama") {
     if (!model) throw new Error("No Ollama model selected.");
     return callOllama(model, systemPrompt, userMessage, maxTokens);
   }
-  if (backend === "groq") {
-    if (!apiKey) throw new Error("No Groq API key configured.");
-    if (!model) throw new Error("No Groq model selected.");
-    return callGroq(apiKey, model, systemPrompt, userMessage, maxTokens);
+
+  if (provider.kind === "anthropic") {
+    if (!apiKey) throw new Error("No Anthropic API key configured.");
+    return callAnthropic(apiKey, model, systemPrompt, userMessage, maxTokens);
   }
-  // anthropic
-  if (!apiKey) throw new Error("No Anthropic API key configured.");
-  return callAnthropic(apiKey, model, systemPrompt, userMessage, maxTokens);
+
+  // openai-compatible (OpenAI, Gemini, OpenRouter, Groq)
+  if (!apiKey) throw new Error(`No ${provider.label} API key configured.`);
+  if (!model) throw new Error(`No ${provider.label} model selected.`);
+  return callOpenAICompatible(
+    provider.baseUrl!,
+    apiKey,
+    model,
+    systemPrompt,
+    userMessage,
+    maxTokens,
+    {
+      providerLabel: provider.label,
+      maxTokensField: provider.maxTokensField,
+      extraHeaders: backend === "openrouter" ? openRouterHeaders() : {},
+    }
+  );
 }

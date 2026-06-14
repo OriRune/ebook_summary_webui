@@ -36,11 +36,13 @@ const STEPS: Step[] = [
     title: "Choose a backend & enter your API key",
     body: (
       <>
-        In <strong>Setup</strong>, pick a backend — Anthropic or Groq
-        {ALLOW_OLLAMA ? ", or Ollama (local)" : ""} — and paste your API key. Your
-        key is stored <strong>only in your browser</strong>, sent with each request,
-        and never saved on our server. For Groq{ALLOW_OLLAMA ? "/Ollama" : ""}, hit{" "}
-        <em>↺ Refresh</em> to load the model list.
+        In <strong>Setup</strong>, pick a backend — Anthropic, OpenAI, Google Gemini,
+        OpenRouter, or Groq{ALLOW_OLLAMA ? ", or Ollama (local)" : ""} — and paste your
+        API key (each provider links to where you get one). Your key is stored{" "}
+        <strong>only in your browser</strong>, sent with each request, and never saved
+        on our server. For every backend except Anthropic, hit <em>↺ Refresh</em> to
+        load the model list. OpenRouter is a handy gateway: one key unlocks models from
+        Anthropic, OpenAI, Google, Meta, and more.
       </>
     ),
   },
@@ -146,9 +148,10 @@ export default function HowToUse() {
         </p>
         <ul className="ml-5 list-disc space-y-1">
           <li>
-            The cost estimate is a rough Anthropic figure (Sonnet pricing); actual usage
-            varies with the book and the model&apos;s responses. Groq is shown as
-            &ldquo;low&rdquo;; Ollama is free/local.
+            The cost estimate is a rough, per-provider ballpark; actual usage varies with
+            the book and the model&apos;s responses. Gateways like OpenRouter (and Groq)
+            show &ldquo;varies by model&rdquo; instead of a dollar figure; Ollama is
+            free/local.
           </li>
           <li>
             Bring your own key — it lives in your browser&apos;s local storage only.

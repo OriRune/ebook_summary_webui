@@ -2,13 +2,45 @@
  * Rough run-cost estimation — pure arithmetic, no API calls. Ported from
  * llm_client.py estimate_run_cost with all constants reproduced exactly.
  *
- * Pricing is Claude Sonnet 4.6 list pricing as of mid-2026 ($3/M input,
- * $15/M output). It's a ballpark that updates live as options change, not a bill.
+ * Pricing is per-provider (USD per 1M tokens), looked up from the provider
+ * registry, with optional per-model overrides for the common tiers. It's a
+ * ballpark that updates live as options change, not a bill. Anthropic's Sonnet
+ * list pricing ($3/M input, $15/M output) is the default fallback.
  */
-import type { CostEstimate } from "@/types";
+import type { Backend, CostEstimate } from "@/types";
+import { PROVIDERS } from "./providers";
 
+// Default (Claude Sonnet list) — kept for back-compat with existing importers.
 export const PRICE_PER_INPUT_TOKEN = 3.0 / 1_000_000;
 export const PRICE_PER_OUTPUT_TOKEN = 15.0 / 1_000_000;
+
+/**
+ * Per-model price overrides (USD per 1M tokens), matched by id substring. Rough,
+ * editable ballparks — update as provider pricing changes. When no override
+ * matches, the provider's default rate (from the registry) applies.
+ */
+const MODEL_PRICE_OVERRIDES: Array<{ match: string; input: number; output: number }> = [
+  { match: "opus", input: 5.0, output: 25.0 },
+  { match: "haiku", input: 1.0, output: 5.0 },
+  { match: "gpt-4o-mini", input: 0.15, output: 0.6 },
+  { match: "gpt-4.1-mini", input: 0.4, output: 1.6 },
+  { match: "gpt-4.1-nano", input: 0.1, output: 0.4 },
+  { match: "o4-mini", input: 1.1, output: 4.4 },
+  { match: "gemini-2.5-flash", input: 0.3, output: 2.5 },
+  { match: "gemini-1.5-flash", input: 0.075, output: 0.3 },
+  { match: "gemini-2.5-pro", input: 1.25, output: 10.0 },
+];
+
+/** Resolve {input,output} USD-per-1M rates for a backend + model, or null. */
+function ratesFor(backend: Backend, model: string): { input: number; output: number } | null {
+  const lower = model.toLowerCase();
+  for (const o of MODEL_PRICE_OVERRIDES) {
+    if (lower.includes(o.match)) return { input: o.input, output: o.output };
+  }
+  const pricing = PROVIDERS[backend]?.pricing;
+  if (pricing && pricing !== "free" && pricing !== "varies") return pricing;
+  return null;
+}
 
 const CHARS_PER_TOKEN = 3.5;
 
@@ -35,10 +67,21 @@ export function totalTokens(estimate: CostEstimate): number {
   return estimate.inputTokens + estimate.outputTokens;
 }
 
-export function estimateUsd(estimate: CostEstimate): number {
+/**
+ * USD estimate for a token count. Pass the backend + model to price against the
+ * selected provider; defaults to Anthropic/Claude list pricing. Returns null
+ * when the provider has no fixed rate (gateways/local) — the caller should show
+ * guidance text instead of a number.
+ */
+export function estimateUsd(
+  estimate: CostEstimate,
+  backend: Backend = "anthropic",
+  model = ""
+): number | null {
+  const rates = ratesFor(backend, model);
+  if (!rates) return null;
   return (
-    estimate.inputTokens * PRICE_PER_INPUT_TOKEN +
-    estimate.outputTokens * PRICE_PER_OUTPUT_TOKEN
+    (estimate.inputTokens * rates.input + estimate.outputTokens * rates.output) / 1_000_000
   );
 }
 

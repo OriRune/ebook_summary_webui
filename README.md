@@ -14,7 +14,8 @@ only in your browser and sent per request — never persisted on the server.
 
 - **Inputs:** `.epub`, `.pdf`, `.txt`, `.md` — auto-split into chapters/sections, with
   title/author detection. Scanned (image-only) PDFs are rejected with a clear message.
-- **LLM backends:** Anthropic, Groq, and (optional, local) Ollama.
+- **LLM backends:** Anthropic, OpenAI, Google Gemini, OpenRouter, Groq, and (optional,
+  local) Ollama. Bring your own key — OpenRouter alone unlocks models from many providers.
 - **Per-section study aids:** summary, flashcards (atomic Q&A + cloze), discussion
   questions, character notes, and an optional carry-forward story recap.
 - **Section tools:** check/uncheck, rename, merge, adjust *Max chars/section* + re-split.
@@ -78,8 +79,17 @@ Environment variables are only needed for **Ollama** (local models). Create a
 | `NEXT_PUBLIC_ALLOW_OLLAMA` | `false` | Set to `true` to show the Ollama backend and let the server reach a local Ollama instance. |
 | `OLLAMA_BASE_URL` | `http://localhost:11434` | Where the server talks to Ollama. |
 
-You'll also need Ollama running — install it from <https://ollama.com>. Anthropic and
-Groq need no env config; just paste your key in the UI.
+You'll also need Ollama running — install it from <https://ollama.com>. The hosted
+providers (Anthropic, OpenAI, Gemini, OpenRouter, Groq) need no env config; just paste
+your key in the UI. Get a key from each provider's console:
+
+| Provider | Get a key |
+| --- | --- |
+| Anthropic | <https://console.anthropic.com/settings/keys> |
+| OpenAI | <https://platform.openai.com/api-keys> |
+| Google Gemini | <https://aistudio.google.com/apikey> |
+| OpenRouter | <https://openrouter.ai/keys> |
+| Groq | <https://console.groq.com/keys> |
 
 > **Don't have Node.js?** Install it from <https://nodejs.org> (Windows/macOS installers),
 > via Homebrew on macOS (`brew install node`), or your package manager / [nvm](https://github.com/nvm-sh/nvm)
@@ -123,8 +133,9 @@ tests/                      # Vitest (parser, JSON extraction, exports, cost, �
 
 - **Bring-your-own-key:** API keys are stored in your browser's local storage and sent
   with each request to the provider; they are never stored on the server.
-- The in-app cost estimate is a rough Anthropic figure (Sonnet pricing); actual usage
-  varies with the book and the model's responses. Groq is shown as "low"; Ollama is free.
+- The in-app cost estimate is a rough, per-provider ballpark; actual usage varies with
+  the book and the model's responses. Gateways like OpenRouter (and Groq) show "varies by
+  model" instead of a dollar figure; Ollama is free/local.
 
 ---
 
