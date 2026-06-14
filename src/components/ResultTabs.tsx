@@ -24,7 +24,7 @@ export default function ResultTabs({
   const [tab, setTab] = useState<Tab>("Summary");
 
   return (
-    <div className="card flex h-full flex-col">
+    <div className="card flex flex-col">
       <div className="truncate text-lg font-semibold" title={section?.title}>
         {section ? section.title : <span className="text-muted">No section selected</span>}
       </div>
@@ -43,7 +43,7 @@ export default function ResultTabs({
           </button>
         ))}
       </div>
-      <div className="min-h-0 flex-1 overflow-auto pt-4">
+      <div className="max-h-[70vh] min-h-[12rem] overflow-auto pt-4">
         {renderTab(tab, section, result, isChecked, characterList, characterListError)}
       </div>
     </div>
@@ -72,7 +72,7 @@ function renderTab(
     return (
       <div className="space-y-3">
         {characterList.map((c, i) => (
-          <div key={i} className="rounded-lg border border-border bg-surface-2 p-3">
+          <div key={i} className="rounded-lg border border-border border-l-4 border-l-[var(--lavender)] bg-surface-2 p-3">
             <div className="font-semibold text-heading">{c.name}</div>
             <div className="reading mt-1">{c.summary}</div>
           </div>
@@ -131,7 +131,7 @@ function renderTab(
                 </span>
               )}
               <div className="reading">
-                <span className="font-semibold text-heading">{cloze ? "" : "Q. "}</span>
+                {!cloze && <span className="badge mr-2 align-middle">Q</span>}
                 {c.front}
               </div>
               {c.back && (

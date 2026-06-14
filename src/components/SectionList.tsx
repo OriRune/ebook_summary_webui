@@ -38,7 +38,7 @@ export default function SectionList({
   onClearAll,
 }: Props) {
   return (
-    <div className="card flex h-full flex-col">
+    <div className="card flex flex-col">
       <div className="mb-1 text-sm font-semibold">
         Sections{" "}
         <span className="font-normal text-muted">(check to include; double-click a title to rename)</span>
@@ -48,7 +48,7 @@ export default function SectionList({
         <button className="btn" onClick={() => onToggleAll(false)}>Uncheck all</button>
         <button className="btn" onClick={onClearAll}>Clear all results</button>
       </div>
-      <div className="min-h-0 flex-1 overflow-auto rounded-lg border border-border">
+      <div className="max-h-[55vh] overflow-auto rounded-lg border border-border lg:max-h-[70vh]">
         <table className="w-full border-collapse text-sm">
           <thead className="sticky top-0 bg-surface-2 text-xs uppercase tracking-wide text-muted">
             <tr>
@@ -89,7 +89,9 @@ export default function SectionList({
                   >
                     {sec.title}
                   </td>
-                  <td className="p-1 text-right tabular-nums">{wordCount(sec)}</td>
+                  <td className="p-1 text-right">
+                    <span className="badge tabular-nums">{wordCount(sec)}</span>
+                  </td>
                   <td className="p-1 text-center">
                     {results[i] && (
                       <span className={selected ? "" : results[i].error ? "status-warn" : "status-ok"}>

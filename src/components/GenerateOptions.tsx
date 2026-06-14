@@ -70,7 +70,7 @@ export default function GenerateOptions({ settings, update, costText }: Props) {
         </label>
       </div>
 
-      <div className="text-xs text-muted">{costText}</div>
+      {costText && <div className="callout text-xs text-muted">{costText}</div>}
     </div>
   );
 }

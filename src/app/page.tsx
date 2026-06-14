@@ -23,6 +23,7 @@ import GenerateOptions from "@/components/GenerateOptions";
 import SectionList from "@/components/SectionList";
 import ResultTabs from "@/components/ResultTabs";
 import ExportBar from "@/components/ExportBar";
+import HowToUse from "@/components/HowToUse";
 
 function fmtDuration(seconds: number): string {
   const s = Math.max(0, Math.floor(seconds));
@@ -45,6 +46,7 @@ export default function Home() {
   const [bookTitle, setBookTitle] = useState("");
   const [author, setAuthor] = useState("");
   const [fileStem, setFileStem] = useState("ebook");
+  const [view, setView] = useState<"generate" | "guide">("generate");
 
   const [status, setStatus] = useState("Open an ebook (.txt, .md, .epub, .pdf) to begin.");
   const [parsing, setParsing] = useState(false);
@@ -420,112 +422,167 @@ export default function Home() {
   if (!loaded) return null;
 
   return (
-    <main className="mx-auto flex h-screen max-w-[1240px] flex-col gap-4 overflow-hidden p-4 sm:p-6">
-      <header className="flex flex-wrap items-center gap-3 border-b border-border pb-3">
-        <span className="h-7 w-1.5 rounded-full bg-accent" aria-hidden />
-        <h1 className="text-xl font-bold tracking-tight">
-          Ebook <span className="text-muted">→</span> Summaries &amp; Flashcards
-        </h1>
-        <label className="btn-primary cursor-pointer">
-          Open ebook…
-          <input
-            type="file"
-            accept=".txt,.md,.markdown,.epub,.pdf"
-            className="hidden"
-            onChange={onUpload}
+    <div className="min-h-screen">
+      <header className="sticky top-0 z-20 border-b border-border bg-surface/85 backdrop-blur">
+        <div className="mx-auto flex max-w-[1240px] flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3 sm:px-6">
+          <span
+            className="h-7 w-7 shrink-0 rounded-lg bg-gradient-to-br from-[var(--coral)] to-[var(--lavender)] shadow-soft"
+            aria-hidden
           />
-        </label>
-        {lastFile.current && (
-          <button className="btn" disabled={parsing || generating} onClick={() => lastFile.current && parseFile(lastFile.current)}>
-            Re-split
+          <h1 className="text-base font-bold tracking-tight sm:text-lg">
+            Ebook <span className="text-muted">→</span> Summaries &amp; Flashcards
+          </h1>
+          <nav className="flex items-center gap-1 sm:ml-2">
+            <button
+              className={`nav-tab ${view === "generate" ? "nav-tab-active" : ""}`}
+              onClick={() => setView("generate")}
+            >
+              Generate
+            </button>
+            <button
+              className={`nav-tab ${view === "guide" ? "nav-tab-active" : ""}`}
+              onClick={() => setView("guide")}
+            >
+              How to use
+            </button>
+          </nav>
+          <button
+            className="btn ml-auto px-2 py-1 text-sm"
+            onClick={() => update("darkMode", !settings.darkMode)}
+            aria-label="Toggle dark mode"
+            title="Toggle dark mode"
+          >
+            {settings.darkMode ? "☀ Light" : "🌙 Dark"}
           </button>
-        )}
-        <span className="text-sm text-muted">{lastFile.current?.name ?? "No file loaded"}</span>
-        <label className="ml-auto flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={settings.darkMode} onChange={(e) => update("darkMode", e.target.checked)} />
-          <span className="text-muted">Dark mode</span>
-        </label>
+        </div>
+        <div className="h-0.5 w-full bg-gradient-to-r from-[var(--coral)] via-[var(--wisteria)] to-[var(--lavender)]" />
       </header>
 
-      <section className="card space-y-3">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-          <label className="flex items-center gap-1.5">
-            <span className="text-muted">Book title</span>
-            <input className="field w-60" value={bookTitle} onChange={(e) => setBookTitle(e.target.value)} />
-          </label>
-          <label className="flex items-center gap-1.5">
-            <span className="text-muted">Author</span>
-            <input className="field w-44" value={author} onChange={(e) => setAuthor(e.target.value)} />
-          </label>
-        </div>
-        <div className="border-t border-border pt-3">
-          <SettingsPanel settings={settings} update={update} allowOllama={ALLOW_OLLAMA} />
-        </div>
-      </section>
+      <main className="mx-auto max-w-[1240px] space-y-4 p-4 sm:p-6">
+        {view === "guide" ? (
+          <HowToUse />
+        ) : (
+          <>
+            <section className="card space-y-3 border-l-4 border-l-[var(--wisteria)]">
+              <div className="label">Setup</div>
+              <div className="flex flex-wrap items-center gap-3">
+                <label className="btn-primary cursor-pointer">
+                  Open ebook…
+                  <input
+                    type="file"
+                    accept=".txt,.md,.markdown,.epub,.pdf"
+                    className="hidden"
+                    onChange={onUpload}
+                  />
+                </label>
+                {lastFile.current && (
+                  <button
+                    className="btn"
+                    disabled={parsing || generating}
+                    onClick={() => lastFile.current && parseFile(lastFile.current)}
+                  >
+                    Re-split
+                  </button>
+                )}
+                <span className="truncate text-sm text-muted">
+                  {parsing ? "Parsing…" : lastFile.current?.name ?? "No file loaded"}
+                </span>
+              </div>
 
-      <section className="card space-y-3">
-        <GenerateOptions settings={settings} update={update} costText={costText} />
+              <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm">
+                <label className="flex flex-1 items-center gap-1.5 sm:flex-none">
+                  <span className="text-muted">Book title</span>
+                  <input
+                    className="field w-full sm:w-60"
+                    value={bookTitle}
+                    onChange={(e) => setBookTitle(e.target.value)}
+                  />
+                </label>
+                <label className="flex flex-1 items-center gap-1.5 sm:flex-none">
+                  <span className="text-muted">Author</span>
+                  <input
+                    className="field w-full sm:w-44"
+                    value={author}
+                    onChange={(e) => setAuthor(e.target.value)}
+                  />
+                </label>
+              </div>
 
-        <div className="flex flex-wrap items-center gap-3 border-t border-border pt-3">
-          <button className="btn-primary" disabled={generating || sections.length === 0} onClick={startGeneration}>
-            Generate for checked sections
-          </button>
-          <button className="btn" disabled={!generating} onClick={stopGeneration}>
-            Stop
-          </button>
-          {generating && progress && (
-            <div className="flex flex-1 items-center gap-3 text-sm">
-              <div className="h-2 min-w-[8rem] flex-1 overflow-hidden rounded-full bg-surface-2 sm:max-w-xs">
-                <div
-                  className="h-full rounded-full bg-accent transition-all"
-                  style={{ width: `${progress.total ? (progress.n / progress.total) * 100 : 0}%` }}
+              <div className="border-t border-border pt-3">
+                <SettingsPanel settings={settings} update={update} allowOllama={ALLOW_OLLAMA} />
+              </div>
+            </section>
+
+            <section className="card space-y-3 border-l-4 border-l-[var(--lavender)]">
+              <GenerateOptions settings={settings} update={update} costText={costText} />
+
+              <div className="flex flex-wrap items-center gap-3 border-t border-border pt-3">
+                <button
+                  className="btn-primary"
+                  disabled={generating || sections.length === 0}
+                  onClick={startGeneration}
+                >
+                  Generate for checked sections
+                </button>
+                <button className="btn" disabled={!generating} onClick={stopGeneration}>
+                  Stop
+                </button>
+                {generating && progress && (
+                  <div className="flex w-full items-center gap-3 text-sm sm:w-auto sm:flex-1">
+                    <div className="h-2 min-w-[8rem] flex-1 overflow-hidden rounded-full bg-surface-2 sm:max-w-xs">
+                      <div
+                        className="h-full rounded-full bg-accent transition-all"
+                        style={{ width: `${progress.total ? (progress.n / progress.total) * 100 : 0}%` }}
+                      />
+                    </div>
+                    <span className="whitespace-nowrap text-muted">
+                      Elapsed {fmtDuration(elapsed)}
+                      {eta !== null && ` · About ${fmtDuration(eta)} left`}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <div className="border-t border-border pt-3">
+                <ExportBar
+                  hasResults={hasResults}
+                  hasFlashcards={hasFlashcards}
+                  hasCloze={hasCloze}
+                  hasCharacterNotes={hasCharacterNotes}
+                  hasContextNotes={hasContextNotes}
+                  onExport={handleExport}
                 />
               </div>
-              <span className="whitespace-nowrap text-muted">
-                Elapsed {fmtDuration(elapsed)}
-                {eta !== null && ` · About ${fmtDuration(eta)} left`}
-              </span>
+
+              <div className="text-xs text-muted">{status}</div>
+            </section>
+
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-[320px_1fr]">
+              <SectionList
+                sections={sections}
+                checked={checked}
+                results={results}
+                selectedIdx={selectedIdx}
+                generating={generating}
+                onSelect={setSelectedIdx}
+                onToggle={toggle}
+                onToggleAll={toggleAll}
+                onRename={rename}
+                onMerge={merge}
+                onClearResult={clearResult}
+                onClearAll={clearAll}
+              />
+              <ResultTabs
+                section={selectedIdx !== null ? sections[selectedIdx] ?? null : null}
+                result={selectedIdx !== null ? results[selectedIdx] : undefined}
+                isChecked={selectedIdx !== null ? (checked[selectedIdx] ?? true) : true}
+                characterList={characterList}
+                characterListError={characterListError}
+              />
             </div>
-          )}
-        </div>
-
-        <div className="border-t border-border pt-3">
-          <ExportBar
-            hasResults={hasResults}
-            hasFlashcards={hasFlashcards}
-            hasCloze={hasCloze}
-            hasCharacterNotes={hasCharacterNotes}
-            hasContextNotes={hasContextNotes}
-            onExport={handleExport}
-          />
-        </div>
-
-        <div className="text-xs text-muted">{status}</div>
-      </section>
-
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 md:grid-cols-[360px_1fr]">
-        <SectionList
-          sections={sections}
-          checked={checked}
-          results={results}
-          selectedIdx={selectedIdx}
-          generating={generating}
-          onSelect={setSelectedIdx}
-          onToggle={toggle}
-          onToggleAll={toggleAll}
-          onRename={rename}
-          onMerge={merge}
-          onClearResult={clearResult}
-          onClearAll={clearAll}
-        />
-        <ResultTabs
-          section={selectedIdx !== null ? sections[selectedIdx] ?? null : null}
-          result={selectedIdx !== null ? results[selectedIdx] : undefined}
-          isChecked={selectedIdx !== null ? (checked[selectedIdx] ?? true) : true}
-          characterList={characterList}
-          characterListError={characterListError}
-        />
-      </div>
-    </main>
+          </>
+        )}
+      </main>
+    </div>
   );
 }
