@@ -661,7 +661,7 @@ export default function Home() {
                 </p>
               </div>
             ) : (
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-[320px_1fr]">
+            <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[auto_1fr]">
               <SectionList
                 sections={sections}
                 checked={checked}

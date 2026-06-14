@@ -68,8 +68,8 @@ const STEPS: Step[] = [
         ↑/↓ buttons to <strong>merge</strong> a section with a neighbor, and adjust{" "}
         <em>Max chars/section</em> then <strong>Re-split</strong> to change how finely
         the book is chunked — chapters split into evenly-sized parts, with no tiny
-        leftover at the end. Drag the bottom edge of the list to <strong>resize</strong>{" "}
-        it when titles or controls are cut off.
+        leftover at the end. Drag the bottom-right corner of the Sections panel to{" "}
+        <strong>resize</strong> it — wider for long titles, taller for more rows.
       </>
     ),
   },

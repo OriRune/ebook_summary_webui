@@ -38,25 +38,25 @@ export default function SectionList({
   onClearAll,
 }: Props) {
   return (
-    <div className="card flex flex-col">
+    <div className="card flex flex-col lg:h-[78vh] lg:min-h-[20rem] lg:w-[340px] lg:min-w-[240px] lg:max-w-[640px] lg:resize lg:overflow-hidden">
       <div className="mb-1 text-sm font-semibold">
         Sections{" "}
-        <span className="font-normal text-muted">(check to include; double-click a title to rename; drag the bottom edge to resize)</span>
+        <span className="font-normal text-muted">(check to include; double-click a title to rename; drag the bottom-right corner to resize)</span>
       </div>
       <div className="mb-2 flex flex-wrap gap-2 text-xs">
         <button className="btn" onClick={() => onToggleAll(true)}>Check all</button>
         <button className="btn" onClick={() => onToggleAll(false)}>Uncheck all</button>
         <button className="btn" onClick={onClearAll}>Clear all results</button>
       </div>
-      <div className="h-[55vh] min-h-[12rem] resize-y overflow-auto rounded-lg border border-border lg:h-[70vh]">
-        <table className="w-full table-fixed border-collapse text-sm">
+      <div className="max-h-[55vh] min-h-[12rem] flex-1 overflow-auto rounded-lg border border-border lg:max-h-none">
+        <table className="w-full border-collapse text-sm">
           <thead className="sticky top-0 bg-surface-2 text-xs uppercase tracking-wide text-muted">
             <tr>
               <th className="w-10 p-1 text-center">Use?</th>
               <th className="p-1 text-left">Section</th>
               <th className="w-14 p-1 text-right">Words</th>
               <th className="w-6 p-1 text-center"></th>
-              <th className="w-[7.5rem] p-1"></th>
+              <th className="p-1"></th>
             </tr>
           </thead>
           <tbody>
@@ -81,14 +81,14 @@ export default function SectionList({
                     />
                   </td>
                   <td
-                    className="truncate p-1"
+                    className="w-full max-w-0 p-1"
                     onDoubleClick={(e) => {
                       e.stopPropagation();
                       onRename(i);
                     }}
                     title={sec.title}
                   >
-                    {sec.title}
+                    <div className="truncate">{sec.title}</div>
                   </td>
                   <td className="p-1 text-right">
                     <span className="badge tabular-nums">{wordCount(sec)}</span>

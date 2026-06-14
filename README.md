@@ -19,8 +19,8 @@ only in your browser and sent per request — never persisted on the server.
 - **Per-section study aids:** summary, flashcards (atomic Q&A + cloze), discussion
   questions, character notes, and an optional carry-forward story recap.
 - **Section tools:** check/uncheck, rename, merge, adjust *Max chars/section* + re-split
-  (oversized chapters split into evenly-sized parts — no tiny trailing chunk). The list
-  is resizable: drag its bottom edge.
+  (oversized chapters split into evenly-sized parts — no tiny trailing chunk). The panel
+  is resizable: drag its bottom-right corner (wider for long titles, taller for more rows).
 - **Streaming generation** with live progress; **Stop** anytime; re-running **resumes**
   only the unfinished/failed sections. Long books **continue automatically** across the
   host's per-request time limit.
