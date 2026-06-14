@@ -2,6 +2,30 @@
 
 import { ALLOW_OLLAMA } from "@/hooks/useSettings";
 
+const REPO_URL = "https://github.com/OriRune/ebook_summary_webui";
+const REPO_GIT = `${REPO_URL}.git`;
+
+function Link({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      className="font-medium text-[var(--link)] underline underline-offset-2"
+    >
+      {children}
+    </a>
+  );
+}
+
+function Cmd({ children }: { children: React.ReactNode }) {
+  return (
+    <pre className="mt-1 overflow-x-auto rounded-md bg-surface-2 px-3 py-2 font-mono text-xs leading-relaxed">
+      {children}
+    </pre>
+  );
+}
+
 interface Step {
   title: string;
   body: React.ReactNode;
@@ -137,6 +161,82 @@ export default function HowToUse() {
           </li>
         </ul>
       </div>
+
+      <section className="card space-y-3 border-l-4 border-l-[var(--wisteria)]">
+        <h2 className="text-lg font-bold tracking-tight">Prefer to run it yourself?</h2>
+        <p className="reading">
+          This tool is open source. If you&apos;d rather run it on your own computer than
+          use the hosted site, grab the code from{" "}
+          <Link href={REPO_URL}>GitHub</Link> and start it locally. You&apos;ll need{" "}
+          <strong>Node.js 18+</strong> (20 or 22 recommended) and <strong>Git</strong>
+          installed first.
+        </p>
+
+        <ol className="reading list-decimal space-y-3 pl-6 marker:font-semibold marker:text-heading">
+          <li>
+            <strong>Open a terminal.</strong> On <strong>Windows</strong>: Command
+            Prompt, PowerShell, or Windows Terminal. On <strong>macOS</strong>: the
+            Terminal app (press <code>⌘&nbsp;Space</code>, type &ldquo;Terminal&rdquo;).
+            On <strong>Linux</strong>: your terminal emulator.
+          </li>
+          <li>
+            <strong>Clone the repository and enter the folder:</strong>
+            <Cmd>{`git clone ${REPO_GIT}\ncd ebook_summary_webui`}</Cmd>
+          </li>
+          <li>
+            <strong>Install dependencies</strong> (same command on every OS):
+            <Cmd>npm install</Cmd>
+          </li>
+          <li>
+            <strong>Start the app:</strong>
+            <Cmd>npm run dev</Cmd>
+            then open <code>http://localhost:3000</code> in your browser. For a faster,
+            production build instead, run <code>npm run build</code> followed by{" "}
+            <code>npm run start</code>.
+          </li>
+          <li>
+            <strong>Enter your API key in Settings</strong> exactly as you would on the
+            website. Everything from here is identical across operating systems.
+          </li>
+        </ol>
+
+        <div className="space-y-2">
+          <div className="label">Optional · enable local models (Ollama)</div>
+          <p className="reading">
+            Ollama runs models on your own machine and only works in a local install.
+            To turn it on, create a <code>.env.local</code> file from the included
+            example, then set <code>NEXT_PUBLIC_ALLOW_OLLAMA=true</code> inside it. The
+            copy command differs by OS:
+          </p>
+          <div className="space-y-2">
+            <div>
+              <span className="badge">Windows · PowerShell</span>
+              <Cmd>Copy-Item .env.example .env.local</Cmd>
+            </div>
+            <div>
+              <span className="badge">Windows · Command Prompt</span>
+              <Cmd>copy .env.example .env.local</Cmd>
+            </div>
+            <div>
+              <span className="badge">macOS / Linux</span>
+              <Cmd>cp .env.example .env.local</Cmd>
+            </div>
+          </div>
+          <p className="reading text-muted">
+            You&apos;ll also need Ollama itself running — install it from{" "}
+            <Link href="https://ollama.com">ollama.com</Link>.
+          </p>
+        </div>
+
+        <div className="callout reading">
+          <strong>Don&apos;t have Node.js yet?</strong> Install it from{" "}
+          <Link href="https://nodejs.org">nodejs.org</Link> (Windows and macOS have
+          one-click installers), via Homebrew on macOS (<code>brew install node</code>),
+          or through your package manager / <Link href="https://github.com/nvm-sh/nvm">nvm</Link>{" "}
+          on Linux. Then re-open your terminal so the <code>node</code> and{" "}
+          <code>npm</code> commands are available.
+        </div>
+      </section>
     </div>
   );
 }
