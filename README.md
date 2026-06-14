@@ -59,7 +59,9 @@ npm run start
 ```
 
 **5. Add your API key** in **Settings** (top of the page), pick a backend, and open an
-ebook. The key lives only in your browser.
+ebook. The key lives only in your browser. Each provider shows a few **Suggested** model
+chips (hover for the trade-off) — a quick way to pick a good model; ↺ Refresh lists every
+model the provider offers.
 
 ---
 

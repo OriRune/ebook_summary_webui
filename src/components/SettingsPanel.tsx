@@ -56,9 +56,13 @@ export default function SettingsPanel({ settings, update, allowOllama }: Props) 
     setModels(b, models);
     const current = modelForBackend(settings, b);
     if (!current || !models.includes(current)) {
+      // Prefer the top recommended model that the provider actually serves,
+      // then the prefer-hint substring, then just the first model.
+      const recommended = (PROVIDERS[b].recommended ?? []).map((r) => r.id);
+      const recMatch = recommended.find((id) => models.includes(id));
       const hint = PROVIDERS[b].modelPreferHint;
-      const preferred = hint ? models.find((m) => m.toLowerCase().includes(hint)) : undefined;
-      update(modelFieldFor(b), preferred || models[0]);
+      const hintMatch = hint ? models.find((m) => m.toLowerCase().includes(hint)) : undefined;
+      update(modelFieldFor(b), recMatch || hintMatch || models[0]);
     }
     setStatus(b, `${models.length} model(s) found`);
   }
@@ -131,6 +135,25 @@ export default function SettingsPanel({ settings, update, allowOllama }: Props) 
           <button className="btn" onClick={() => refresh(backend)}>↺ Refresh</button>
           <span className="text-muted">{status}</span>
         </>
+      )}
+
+      {/* Suggested models — quick picks layered over the full provider list. */}
+      {provider.recommended && provider.recommended.length > 0 && (
+        <div className="flex w-full flex-wrap items-center gap-1.5 text-xs">
+          <span className="text-muted">Suggested:</span>
+          {provider.recommended.map((r) => (
+            <button
+              key={r.id}
+              type="button"
+              title={r.note}
+              aria-pressed={currentModel === r.id}
+              onClick={() => update(modelFieldFor(backend), r.id)}
+              className={`chip ${currentModel === r.id ? "chip-active" : ""}`}
+            >
+              {r.label ?? r.id}
+            </button>
+          ))}
+        </div>
       )}
 
       <label className="flex w-full items-center gap-1 sm:w-auto">

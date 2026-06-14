@@ -41,8 +41,10 @@ const STEPS: Step[] = [
         API key (each provider links to where you get one). Your key is stored{" "}
         <strong>only in your browser</strong>, sent with each request, and never saved
         on our server. For every backend except Anthropic, hit <em>↺ Refresh</em> to
-        load the model list. OpenRouter is a handy gateway: one key unlocks models from
-        Anthropic, OpenAI, Google, Meta, and more.
+        load the model list. Not sure which model to use? Click a{" "}
+        <strong>Suggested</strong> chip for a good pick (hover for the trade-off);
+        ↺ Refresh always lists everything the provider offers. OpenRouter is a handy
+        gateway: one key unlocks models from Anthropic, OpenAI, Google, Meta, and more.
       </>
     ),
   },

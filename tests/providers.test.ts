@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { callModel } from "@/lib/llm/backends";
 import { getOpenAICompatibleModels } from "@/lib/llm/models";
-import { PROVIDERS } from "@/lib/llm/providers";
+import { PROVIDERS, ALL_BACKENDS } from "@/lib/llm/providers";
 
 function okResp(content: string) {
   return {
@@ -82,5 +82,20 @@ describe("getOpenAICompatibleModels", () => {
     const { models, error } = await getOpenAICompatibleModels("https://x/v1", "");
     expect(models).toEqual([]);
     expect(error).toMatch(/api key/i);
+  });
+});
+
+describe("recommended models registry", () => {
+  it("every cloud provider has a non-empty list of valid recommendations", () => {
+    for (const backend of ALL_BACKENDS) {
+      if (backend === "ollama") continue; // local models depend on the user's install
+      const { recommended } = PROVIDERS[backend];
+      expect(recommended, `${backend} should have recommendations`).toBeDefined();
+      expect(recommended!.length).toBeGreaterThan(0);
+      for (const r of recommended!) {
+        expect(typeof r.id).toBe("string");
+        expect(r.id.trim().length).toBeGreaterThan(0);
+      }
+    }
   });
 });

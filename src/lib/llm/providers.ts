@@ -35,11 +35,27 @@ export interface ProviderInfo {
   /** After a model refresh, auto-select the first id containing this substring. */
   modelPreferHint?: string;
   /**
+   * A short, hand-curated shortlist of good models, surfaced as clickable
+   * "Suggested" chips in the settings panel. This is a starting point that may
+   * drift over time — the live ↺ Refresh list is always authoritative. The
+   * first entry doubles as the preferred auto-default after a refresh.
+   */
+  recommended?: RecommendedModel[];
+  /**
    * Cost-estimate basis (USD per 1M tokens). "free" = local/no charge;
    * "varies" = gateway/many models, so we show guidance instead of a number.
    * Numbers are rough, editable ballparks — a guide, not a bill.
    */
   pricing: { input: number; output: number } | "varies" | "free";
+}
+
+export interface RecommendedModel {
+  /** Exact model id sent to the provider. */
+  id: string;
+  /** Optional shorter display label for the chip (defaults to `id`). */
+  label?: string;
+  /** One-line trade-off blurb shown on hover (e.g. "cheap & fast"). */
+  note?: string;
 }
 
 export const PROVIDERS: Record<Backend, ProviderInfo> = {
@@ -49,6 +65,11 @@ export const PROVIDERS: Record<Backend, ProviderInfo> = {
     kind: "anthropic",
     keyPlaceholder: "sk-ant-…",
     consoleUrl: "https://console.anthropic.com/settings/keys",
+    recommended: [
+      { id: "claude-sonnet-4-6", note: "Balanced — recommended default" },
+      { id: "claude-opus-4-8", note: "Most capable (pricier)" },
+      { id: "claude-haiku-4-5", note: "Fast & cheap" },
+    ],
     pricing: { input: 3.0, output: 15.0 }, // Claude Sonnet list pricing
   },
   openai: {
@@ -75,6 +96,11 @@ export const PROVIDERS: Record<Backend, ProviderInfo> = {
     keyPlaceholder: "sk-…",
     consoleUrl: "https://platform.openai.com/api-keys",
     modelPreferHint: "gpt-4o",
+    recommended: [
+      { id: "gpt-4o-mini", note: "Cheap & fast — great for bulk" },
+      { id: "gpt-4o", note: "Best quality" },
+      { id: "gpt-4.1-mini", note: "Balanced" },
+    ],
     pricing: { input: 2.5, output: 10.0 }, // gpt-4o-class ballpark
   },
   gemini: {
@@ -87,6 +113,11 @@ export const PROVIDERS: Record<Backend, ProviderInfo> = {
     keyPlaceholder: "AIza…",
     consoleUrl: "https://aistudio.google.com/apikey",
     modelPreferHint: "flash",
+    recommended: [
+      { id: "gemini-2.5-flash", note: "Cheap & fast" },
+      { id: "gemini-2.5-pro", note: "Best quality" },
+      { id: "gemini-2.0-flash", note: "Budget" },
+    ],
     pricing: { input: 0.3, output: 2.5 }, // flash/pro ballpark
   },
   openrouter: {
@@ -97,6 +128,13 @@ export const PROVIDERS: Record<Backend, ProviderInfo> = {
     keyPlaceholder: "sk-or-…",
     consoleUrl: "https://openrouter.ai/keys",
     modelPreferHint: "claude",
+    // OpenRouter ids are namespaced "vendor/model". Value-oriented picks; the
+    // catalog is huge and changes often, so Refresh is the real source of truth.
+    recommended: [
+      { id: "openai/gpt-4o-mini", label: "gpt-4o-mini", note: "Cheap & fast" },
+      { id: "google/gemini-2.5-flash", label: "gemini-2.5-flash", note: "Great value" },
+      { id: "deepseek/deepseek-chat", label: "deepseek-chat", note: "Very cheap" },
+    ],
     pricing: "varies", // gateway: hundreds of models at different prices
   },
   groq: {
@@ -109,6 +147,10 @@ export const PROVIDERS: Record<Backend, ProviderInfo> = {
     keyPlaceholder: "gsk_…",
     consoleUrl: "https://console.groq.com/keys",
     modelPreferHint: "70b",
+    recommended: [
+      { id: "llama-3.3-70b-versatile", note: "Best quality" },
+      { id: "llama-3.1-8b-instant", note: "Fast & cheap" },
+    ],
     pricing: "varies",
   },
   ollama: {
