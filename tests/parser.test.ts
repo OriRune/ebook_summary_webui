@@ -75,6 +75,21 @@ More ordinary prose that continues.`;
     for (const s of sections) expect(s.text.length).toBeLessThanOrEqual(9000);
   });
 
+  it("1.4b balanced chunks avoid a tiny trailing section", () => {
+    // 9.5k chars with a 9k cap would greedily give one 9k chunk + a ~0.5k
+    // sliver; balanced splitting should produce two near-equal chunks instead.
+    const input = makeParagraphs(9500, 500);
+    const sections = splitPlainText(input, 9000);
+    expect(sections.length).toBe(2);
+    const sizes = sections.map((s) => s.text.length);
+    for (const size of sizes) expect(size).toBeLessThanOrEqual(9000);
+    const [a, b] = sizes;
+    const largest = Math.max(a, b);
+    const smallest = Math.min(a, b);
+    // Neither chunk should be a lopsided sliver — keep them within ~40%.
+    expect(smallest).toBeGreaterThan(largest * 0.6);
+  });
+
   it("1.5 oversized section subdivision", () => {
     const big = makeParagraphs(25000, 500);
     const small = makeParagraphs(3000, 500);

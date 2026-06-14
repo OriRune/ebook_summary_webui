@@ -18,7 +18,9 @@ only in your browser and sent per request — never persisted on the server.
   local) Ollama. Bring your own key — OpenRouter alone unlocks models from many providers.
 - **Per-section study aids:** summary, flashcards (atomic Q&A + cloze), discussion
   questions, character notes, and an optional carry-forward story recap.
-- **Section tools:** check/uncheck, rename, merge, adjust *Max chars/section* + re-split.
+- **Section tools:** check/uncheck, rename, merge, adjust *Max chars/section* + re-split
+  (oversized chapters split into evenly-sized parts — no tiny trailing chunk). The list
+  is resizable: drag its bottom edge.
 - **Streaming generation** with live progress; **Stop** anytime; re-running **resumes**
   only the unfinished/failed sections. Long books **continue automatically** across the
   host's per-request time limit.

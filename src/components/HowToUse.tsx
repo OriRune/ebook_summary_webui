@@ -67,7 +67,9 @@ const STEPS: Step[] = [
         for&rdquo; pages). Double-click a title to <strong>rename</strong> it, use the
         ↑/↓ buttons to <strong>merge</strong> a section with a neighbor, and adjust{" "}
         <em>Max chars/section</em> then <strong>Re-split</strong> to change how finely
-        the book is chunked.
+        the book is chunked — chapters split into evenly-sized parts, with no tiny
+        leftover at the end. Drag the bottom edge of the list to <strong>resize</strong>{" "}
+        it when titles or controls are cut off.
       </>
     ),
   },
@@ -102,8 +104,11 @@ const STEPS: Step[] = [
       <>
         Select a section and switch between the <strong>Summary</strong>,{" "}
         <strong>Flashcards</strong>, <strong>Discussion</strong>,{" "}
-        <strong>Characters</strong>, and <strong>Section text</strong> tabs. The
-        character guide is book-wide; the rest are per section.
+        <strong>Section characters</strong>, <strong>Characters</strong>, and{" "}
+        <strong>Section text</strong> tabs. <strong>Section characters</strong> shows
+        the character notes gathered from just that section; the book-wide{" "}
+        <strong>Characters</strong> guide merges them across the whole book — the rest
+        are per section.
       </>
     ),
   },

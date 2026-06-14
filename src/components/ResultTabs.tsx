@@ -3,7 +3,14 @@
 import { useState } from "react";
 import type { CharacterSummary, Section, SectionResult } from "@/types";
 
-const TABS = ["Summary", "Flashcards", "Discussion", "Characters", "Section text"] as const;
+const TABS = [
+  "Summary",
+  "Flashcards",
+  "Discussion",
+  "Section characters",
+  "Characters",
+  "Section text",
+] as const;
 type Tab = (typeof TABS)[number];
 
 interface Props {
@@ -114,6 +121,32 @@ function renderTab(
   if (!result) {
     return <Empty>{isChecked ? "(not generated yet)" : "(section unchecked — skipped)"}</Empty>;
   }
+
+  if (tab === "Section characters") {
+    if (result.error) return "";
+    if (result.characterNotes.length === 0) {
+      return (
+        <Empty>
+          (no character notes for this section — enable the character guide and pick
+          Fiction/Nonfiction before generating)
+        </Empty>
+      );
+    }
+    return (
+      <div className="space-y-3">
+        {result.characterNotes.map((c, i) => (
+          <div
+            key={i}
+            className="rounded-lg border border-border border-l-4 border-l-[var(--lavender)] bg-surface-2 p-3"
+          >
+            <div className="font-semibold text-heading">{c.name}</div>
+            <div className="reading mt-1">{c.note}</div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   if (result.error) {
     if (tab === "Summary") {
       return (
